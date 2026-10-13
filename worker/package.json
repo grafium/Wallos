@@ -1,0 +1,28 @@
+{
+  "name": "wallos-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Wallos subscription tracker on Cloudflare Workers + D1",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:migrate:local": "wrangler d1 migrations apply wallos --local",
+    "db:migrate:remote": "wrangler d1 migrations apply wallos --remote",
+    "cf-typegen": "wrangler types --env-interface Env src/worker-configuration.d.ts"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "hono": "^4.13.13",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.1",
+    "@cloudflare/workers-types": "^5.20261013.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.150.0"
+  }
+}

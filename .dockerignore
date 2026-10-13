@@ -11,3 +11,5 @@
 
 # README screenshots and capture script; not used at runtime
 /screenshots/
+# Cloudflare Worker port; deployed separately with wrangler
+/worker/

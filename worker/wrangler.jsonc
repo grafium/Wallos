@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wallos",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  // Create the database with `npx wrangler d1 create wallos` and paste the
+  // returned database_id here before the first remote migration/deploy.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wallos",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Mirrors the Wallos crontab (all times UTC).
+  "triggers": {
+    "crons": ["0 1 * * *"]
+  },
+
+  "vars": {
+    "SESSION_TTL_DAYS": "30"
+  }
+}
