@@ -26,7 +26,7 @@
     {
       "binding": "DB",
       "database_name": "wallos",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "77fe2741-2dfa-43b1-9a6a-db5371ed1c87",
       "migrations_dir": "migrations"
     }
   ],
