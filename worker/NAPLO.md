@@ -1,6 +1,6 @@
 # Munkanapló — Wallos → Cloudflare Workers + D1
 
-Időrendben: mit kért a megrendelő, mi készült el, milyen döntések születtek, és milyen hibákba futottunk bele. Ág: `claude/zen-goldberg-0hbajd` (PR-t nem nyitottunk). A részletes tartalmat lásd: [ROADMAP.md](./ROADMAP.md) (2.–2e. szakasz) és [README.md](./README.md).
+Időrendben: mit kért a megrendelő, mi készült el, milyen döntések születtek, és milyen hibákba futottunk bele. Ág: `claude/zen-goldberg-0hbajd` (PR-t nem nyitottunk). A részletes tartalmat lásd: [ROADMAP.md](./ROADMAP.md) (2.–2f. szakasz) és [README.md](./README.md).
 
 | Fázis | Commit | Tesztek | CI |
 |---|---|---|---|
@@ -10,7 +10,7 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | 4. Logók, ikonok, avatarok R2-ben, logókereső | `04bc7ea` | 103 | ✅ |
 | 5. Webes felület (WIP-commitok: `dc7ca44`, `c482d21`, `fd1f024`, `03d2869`, `1b3846f`, `5bb1061`) | `a3c4ec3` | 198 | ✅ |
 | Napló, szabályok, átvétel, füstteszt | `ccef85b` | 198 | ✅ |
-| 6. 2FA (TOTP), OIDC SSO, belépés-korlátozás | lásd git log | 221 | — |
+| 6. 2FA (TOTP), OIDC SSO, belépés-korlátozás | `610c2d6` | 221 | ✅ |
 
 Minden munka 2026-10-13-án készült.
 
