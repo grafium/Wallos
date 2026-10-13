@@ -14,6 +14,7 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | Napló: 6. fázis commitja és CI-eredménye | `2c81926` | 221 | ✅ |
 | Mentés a 6. fázis után | `27d5a06` | 221 | ✅ |
 | 7. Éves költségtörténet, AI-javaslatok | `90c1fe1` | 233 | ✅ |
+| Napló: 7. fázis commitja és CI-eredménye | `160e2f5` | 233 | ✅ |
 
 Minden munka 2026-10-13-án készült.
 
@@ -108,3 +109,10 @@ Minden munka 2026-10-13-án készült.
 - Ellenőrzés: 233 teszt, typecheck, böngészős füstteszt.
 - **Hiba menet közben:** a régi `ui-notifications` teszt a „nem elérhető” állapotot rögzítette, és saját `ai_recommendations` táblát hozott létre, majd dobott el — ez a valódi migráció mellett ütközött volna; a blokk kikerült, az új `ai.test.ts` fedi le.
 - Verzió: 0.7.0. A funkcióparitás elérve; hátra a 8. fázis (élesítés).
+
+## Mentés (a 7. fázis után)
+
+**Kérés:** „Ments mindet: NAPLO, SZABALYOK, ATVETEL.”
+
+- A három dokumentum a 7. fázissal már frissült (`90c1fe1`, CI-eredmény a `160e2f5`-ben, annak CI-je is zöld). Most ez a bejegyzés, és az ATVETEL-be a nyitott ellenőrzések listája került (amit tesztkörnyezetben nem lehetett kipróbálni).
+- Állapot a mentéskor: 0.7.0, 233 zöld teszt, CI zöld, munkakönyvtár tiszta, funkcióparitás elérve. Következő lépés: 8. fázis (élesítés) a megrendelő Cloudflare-fiókjával.

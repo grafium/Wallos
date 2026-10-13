@@ -1,6 +1,6 @@
 # Átadás-átvétel — hol tart a projekt, hogyan lehet folytatni
 
-Állapot: **2026-10-13, 0.7.0 verzió, a 7. fázis kész** (`90c1fe1`, CI zöld) – a funkcióparitás elérve (éves költségtörténet, AI-javaslatok); hátra csak az élesítés van. Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
+Állapot: **2026-10-13, 0.7.0 verzió, a 7. fázis kész** (`90c1fe1`, CI zöld) – a funkcióparitás elérve (éves költségtörténet, AI-javaslatok); hátra csak az élesítés van. Utolsó mentés: a 7. fázis után, tiszta munkakönyvtárral. Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
 
 ## 1. Mi működik
 
@@ -19,6 +19,15 @@
 | 8 | Élesítés | lásd a 3. szakaszt; plusz egyedi domain, Access/WAF, D1 Time Travel + export R2-be, deploy a GitHub Actionsből |
 
 Hátralévő becslés: kb. 0,5–1 hét, csak az élesítés (ROADMAP 3. szakasz). A 7. fázis kész (ROADMAP 2g); a funkcióparitás megvan, a dokumentált eltérésekkel.
+
+### Nyitott ellenőrzések (tesztkörnyezetben nem próbálható)
+
+Ezek a tesztekben mockolt hívásokkal működnek, valódi szolgáltatóval az élesítéskor érdemes egyszer kipróbálni:
+
+- AI-javaslat egy valódi szolgáltatóval (pl. Workers AI vagy ChatGPT-kulcs), és a kategóriafordítás.
+- OIDC-belépés a valódi identitásszolgáltatóval (redirect URL = a Wallos címe).
+- E-mail a Resenden át (jelszó-visszaállítás, értesítés), Web Push egy valódi böngészővel.
+- Árfolyam-frissítés és logókereső élő hálózaton; a cron első hétfői futása (költségtörténet).
 
 ## 3. Élesítés (még nem történt meg)
 
