@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import config from "../wrangler.jsonc?raw";
-import { configuredDatabaseId, databaseIdFrom, deployedUrl, PLACEHOLDER_DATABASE_ID, setDatabaseId, setVar } from "../scripts/lib/wrangler-config";
+import { configuredDatabaseId, databaseIdFrom, deployedUrl, setDatabaseId, setVar, UUID } from "../scripts/lib/wrangler-config";
 
 /*
   The wrangler.jsonc edits of scripts/setup-cloudflare.ts, on the real file.
@@ -10,8 +10,8 @@ const id = "6f1c2a3b-4d5e-4f60-8a9b-0c1d2e3f4a5b";
 const parse = (jsonc: string) => JSON.parse(jsonc.replace(/^\s*\/\/.*$/gm, "").replace(/,(\s*[}\]])/g, "$1"));
 
 describe("wrangler.jsonc edits", () => {
-  it("starts with the placeholder database id", () => {
-    expect(configuredDatabaseId(config)).toBe(PLACEHOLDER_DATABASE_ID);
+  it("has a database id: the placeholder, or the real one setup-cloudflare.ts wrote", () => {
+    expect(configuredDatabaseId(config)).toMatch(new RegExp(`^${UUID.source}$`, "i"));
   });
 
   it("sets the database id and variables, keeping comments and validity", () => {
