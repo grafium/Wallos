@@ -1,6 +1,6 @@
 # Átadás-átvétel — hol tart a projekt, hogyan lehet folytatni
 
-Állapot: **2026-10-13, 0.8.0 verzió, a 8. fázis (élesítés előkészítése) kész** – a kód kész és ellenőrzött; az éles telepítés a megrendelő Cloudflare-fiókjában, az [ELESITES.md](./ELESITES.md) szerint történik. Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
+Állapot: **2026-10-13, 0.8.0 verzió, a 8. fázis (élesítés előkészítése) kész** (`e18df73`, CI zöld) – a kód kész és ellenőrzött; az éles telepítés a megrendelő Cloudflare-fiókjában, az [ELESITES.md](./ELESITES.md) szerint történik. Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
 
 ## 1. Mi működik
 

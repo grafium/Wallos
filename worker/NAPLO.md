@@ -16,7 +16,7 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | 7. Éves költségtörténet, AI-javaslatok | `90c1fe1` | 233 | ✅ |
 | Napló: 7. fázis commitja és CI-eredménye | `160e2f5` | 233 | ✅ |
 | Mentés a 7. fázis után | `d0f9248` | 233 | ✅ |
-| 8. Élesítés előkészítése (mentés, beállító, CI/CD, útmutató) | lásd git log | 240 | — |
+| 8. Élesítés előkészítése (mentés, beállító, CI/CD, útmutató) | `e18df73` | 240 | ✅ |
 
 Minden munka 2026-10-13-án készült.
 
