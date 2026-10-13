@@ -1,5 +1,6 @@
 import type { Ui, UiCtx } from "../context";
 import { getVapidKeys } from "../../lib/webpush";
+import { MASK, SECRET_FIELDS, type ChannelName } from "../../notifications/channels";
 
 /*
   The notifications section of settings.php. The markup (ids, inline
@@ -128,6 +129,11 @@ export function NotificationsSection({ ui, data }: { ui: Ui; data: NotificationD
     return value === undefined || value === null ? fallback : String(value);
   };
   const flag = (config: Config, key: string) => Boolean(config[key]) && config[key] !== "0";
+  // Stored secrets are shown masked; the save endpoints keep the stored value when they get the mask back.
+  const secret = (name: ChannelName, key: string) => {
+    const value = str(channel(name).config, key);
+    return value && SECRET_FIELDS[name]?.includes(key) ? MASK : value;
+  };
 
   const email = channel("email");
   const discord = channel("discord");
@@ -222,7 +228,7 @@ export function NotificationsSection({ ui, data }: { ui: Ui; data: NotificationD
           <div class="account-notification-section-settings" data-type="gotify">
             <Enabled ui={ui} id="gotifyenabled" checked={gotify.enabled} />
             <Field id="gotifyurl" placeholder={t("url")} value={str(gotify.config, "url")} />
-            <Field id="gotifytoken" placeholder={t("token")} value={str(gotify.config, "token")} />
+            <Field id="gotifytoken" placeholder={t("token")} value={secret("gotify", "token")} />
             <IgnoreSsl ui={ui} id="gotifyignoressl" checked={flag(gotify.config, "ignore_ssl")} />
             <Buttons ui={ui} name="Gotify" test="testNotificationsGotifyButton()" save="saveNotificationsGotifyButton()" />
           </div>
@@ -233,7 +239,7 @@ export function NotificationsSection({ ui, data }: { ui: Ui; data: NotificationD
           <div class="account-notification-section-settings" data-type="pushover">
             <Enabled ui={ui} id="pushoverenabled" checked={pushover.enabled} />
             <Field id="pushoveruserkey" placeholder={t("pushover_user_key")} value={str(pushover.config, "user_key")} />
-            <Field id="pushovertoken" placeholder={t("token")} value={str(pushover.config, "token")} />
+            <Field id="pushovertoken" placeholder={t("token")} value={secret("pushover", "token")} />
             <Buttons ui={ui} name="Pushover" test="testNotificationsPushoverButton()" save="saveNotificationsPushoverButton()" />
           </div>
         </section>
@@ -242,7 +248,7 @@ export function NotificationsSection({ ui, data }: { ui: Ui; data: NotificationD
           <Header type="telegram" icon="fa-solid fa-paper-plane" title={t("telegram")} />
           <div class="account-notification-section-settings" data-type="telegram">
             <Enabled ui={ui} id="telegramenabled" checked={telegram.enabled} />
-            <Field id="telegrambottoken" placeholder={t("telegram_bot_token")} value={str(telegram.config, "bot_token")} />
+            <Field id="telegrambottoken" placeholder={t("telegram_bot_token")} value={secret("telegram", "bot_token")} />
             <Field id="telegramchatid" placeholder={t("telegram_chat_id")} value={str(telegram.config, "chat_id")} />
             <Buttons ui={ui} name="Telegram" test="testNotificationsTelegramButton()" save="saveNotificationsTelegramButton()" />
           </div>
@@ -252,7 +258,7 @@ export function NotificationsSection({ ui, data }: { ui: Ui; data: NotificationD
           <Header type="pushplus" icon="fa-solid fa-bell" title={t("pushplus")} />
           <div class="account-notification-section-settings" data-type="pushplus">
             <Enabled ui={ui} id="pushplusenabled" checked={pushplus.enabled} />
-            <Field id="pushplustoken" placeholder={t("pushplus_token")} value={str(pushplus.config, "token")} />
+            <Field id="pushplustoken" placeholder={t("pushplus_token")} value={secret("pushplus", "token")} />
             <Buttons ui={ui} name="PushPlus" test="testNotificationsPushPlusButton()" save="saveNotificationsPushPlusButton()" />
           </div>
         </section>
@@ -286,7 +292,7 @@ export function NotificationsSection({ ui, data }: { ui: Ui; data: NotificationD
             <Field id="ntfytopic" placeholder={t("topic")} value={str(ntfy.config, "topic")} />
             <div class="form-group-inline">
               <textarea class="thin" name="ntfyheaders" id="ntfyheaders" placeholder={t("custom_headers")}>
-                {str(ntfy.config, "headers")}
+                {secret("ntfy", "headers")}
               </textarea>
             </div>
             <IgnoreSsl ui={ui} id="ntfyignoressl" checked={flag(ntfy.config, "ignore_ssl")} groupClass="form-grpup-inline" />
@@ -341,7 +347,7 @@ export function NotificationsSection({ ui, data }: { ui: Ui; data: NotificationD
           <Header type="serverchan" icon="fa-solid fa-code" title={t("serverchan")} />
           <div class="account-notification-section-settings" data-type="serverchan">
             <Enabled ui={ui} id="serverchanenabled" checked={serverchan.enabled} />
-            <Field id="serverchansendkey" placeholder={t("serverchan_sendkey")} value={str(serverchan.config, "sendkey")} />
+            <Field id="serverchansendkey" placeholder={t("serverchan_sendkey")} value={secret("serverchan", "sendkey")} />
             <Buttons ui={ui} name="Serverchan" test="testNotificationsServerchanButton()" save="saveNotificationsServerchanButton()" />
           </div>
         </section>
@@ -367,7 +373,7 @@ export function NotificationsSection({ ui, data }: { ui: Ui; data: NotificationD
             <Field id="webhookurl" placeholder={t("webhook_url")} value={str(webhook.config, "url")} />
             <div class="form-group-inline">
               <textarea class="thin" name="webhookcustomheaders" id="webhookcustomheaders" placeholder={t("custom_headers")}>
-                {str(webhook.config, "headers")}
+                {secret("webhook", "headers")}
               </textarea>
             </div>
             <div class="form-group-inline">

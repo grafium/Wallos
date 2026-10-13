@@ -46,7 +46,7 @@ export function PaymentMethod({ t, payment, reloaded = false }: { t: Translate; 
         <i class="fa-solid fa-grip-vertical"></i>
       </div>
       <img src={paymentIconSrc(payment.icon)} alt="Logo" />
-      <span class="payment-name" contenteditable="true" title={t("rename_payment_method")}>
+      <span class="payment-name" contenteditable={"true" as unknown as boolean} title={t("rename_payment_method")}>
         {payment.name}
       </span>
       {!inUse && (
