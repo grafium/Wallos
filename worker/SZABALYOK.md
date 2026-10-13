@@ -14,6 +14,8 @@ Ezek a szabályok a projekt eddigi menetéből és a megrendelő kéréseiből �
    - a [NAPLO.md](./NAPLO.md) bejegyzést kapott;
    - a végső commit `[skip ci]` nélkül ki van pusholva.
 4. A végén rövid magyar összefoglaló: mi készült el, mi tér el a PHP-tól, mi jön a következő fázisban.
+5. **„Ments mindent: NAPLO, SZABALYOK, ATVETEL”** azt jelenti: a három dokumentum tükrözze a pillanatnyi állapotot (napló-bejegyzés a kérésről is), a munkából semmi ne maradjon csak a scratchpadben (pl. segédszkriptek a repóba), és minden legyen commitolva és pusholva.
+6. A naplóba CI-eredményt (✅) csak akkor írunk, ha a GitHub Actions futását ténylegesen ellenőriztük; a fázis commitjának azonosítója és CI-eredménye egy rövid `docs(worker): …` commitban kerül be utólag.
 
 ## 2. Git
 

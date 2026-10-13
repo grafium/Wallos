@@ -11,6 +11,7 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | 5. Webes felület (WIP-commitok: `dc7ca44`, `c482d21`, `fd1f024`, `03d2869`, `1b3846f`, `5bb1061`) | `a3c4ec3` | 198 | ✅ |
 | Napló, szabályok, átvétel, füstteszt | `ccef85b` | 198 | ✅ |
 | 6. 2FA (TOTP), OIDC SSO, belépés-korlátozás | `610c2d6` | 221 | ✅ |
+| Napló: 6. fázis commitja és CI-eredménye | `2c81926` | 221 | ✅ |
 
 Minden munka 2026-10-13-án készült.
 
@@ -67,7 +68,7 @@ Minden munka 2026-10-13-án készült.
 - **Hibák:** a `layout.tsx`-ben szó szerint szereplő U+2028 karakter eltörte a parse-t, ezért most `String.fromCharCode` állítja elő. A `page()` típushibája miatt Hono `Context`-et fogad. A statikus fájlok tesztje `worker.fetch`-csel 404-et adott, helyette `env.ASSETS.fetch` kell. A füstteszt az első, rejtett „hozzáadás” gombra kattintott, ezért most `:visible` szelektort használ. Headless Chromiumban a `navigator.language` értéke `en-US@posix` volt, ami `Intl`-hibát okozott a változatlan `stats.js`-ben; a tesztkörnyezet hibája volt, a füstteszt ezért explicit locale-t állít be.
 - Verzió: 0.5.0. A dokumentáció frissítve (ROADMAP 2e, 15. kockázat, hátralévő idő kb. 2–3 hét).
 
-## Mentés (session vége)
+## Mentés (az 5. fázis után)
 
 **Kérés:** „Ments mindent: NAPLO, SZABALYOK, ATVETEL.”
 
@@ -86,3 +87,10 @@ Minden munka 2026-10-13-án készült.
 - Ellenőrzés: 221 teszt, typecheck, `wrangler deploy --dry-run`, böngészős füstteszt (2FA bekapcsolás QR-kóddal, belépés `totp.php`-n, kikapcsolás mentőkóddal).
 - **Hibák menet közben:** a teszt a `/`-t nézte bejelentkezés után, de üres fióknál az átirányít — a profil oldalra cseréltem. A fordítás szövege „Two Factor Authentication is already enabled”, nem a kulcs. A füstteszt a QR-kódot láthatóként várta, de a qrcode.js elrejti a canvas-t — `state: "attached"`.
 - Verzió: 0.6.0.
+
+## Mentés (a 6. fázis után)
+
+**Kérés:** „Ments mindent: NAPLO, SZABALYOK, ATVETEL.”
+
+- A három dokumentum már a 6. fázissal együtt frissült (`610c2d6`, a commit-azonosító és a CI-eredmény a `2c81926`-ban). Most ez a bejegyzés és két új munkaszabály került be a SZABALYOK-ba (CI-eredmény csak ellenőrzés után; mit jelent a „Ments mindent”).
+- Állapot a mentéskor: 0.6.0, 221 zöld teszt, CI zöld, munkakönyvtár tiszta. Következő lépés a megrendelő döntése: 7. fázis vagy élesítés.
