@@ -1,6 +1,6 @@
 # Wallos → Cloudflare Workers + D1: felmérés és ütemterv
 
-Állapot: 2026-10-13 · Alap: Wallos v5.8.3 (`grafium/Wallos`, `main`)
+Állapot: 2026-10-13, 2. fázis kész · Alap: Wallos v5.8.3 (`grafium/Wallos`, `main`)
 
 ## 1. A kódbázis felmérése
 
@@ -22,7 +22,7 @@
 | Előfizetések CRUD, klón, megújítás | `endpoints/subscription/*`, `api/subscriptions/*` | Worker + D1 | **kész (1. fázis)** |
 | Kategóriák, tagok, fizetési módok, devizák | `endpoints/{categories,household,payments,currency}`, `api/*` | Worker + D1 | **kész (1. fázis)** |
 | Következő fizetési dátum léptetése (cron) | `endpoints/cronjobs/updatenextpayment.php` | Cron Trigger | **kész (1. fázis)** |
-| Havi költség, összesítők | `api/subscriptions/get_monthly_cost.php`, `includes/stats_calculations.php` | Worker | **részben kész** (havi költség, összesítő) |
+| Havi költség, összesítők, költségvetési időszakok | `api/subscriptions/get_monthly_cost.php`, `get_period_budget.php`, `includes/budget_period_calculations.php` | Worker | **kész (1–2. fázis)**; a statisztika-oldal grafikonjai a 7. fázisban |
 | Regisztráció, belépés, API-kulcs | `registration.php`, `login.php`, `includes/checksession.php` | D1 sessions tábla, PBKDF2 | **kész (1. fázis)** |
 | Jelszó-visszaállítás, e-mail-megerősítés | `passwordreset.php`, `verifyemail.php`, cron | E-mail küldés HTTP API-n | közepes |
 | TOTP 2FA, OIDC/OAuth SSO | `totp.php`, `includes/oidc/*`, `libs/OTPHP` | WebCrypto, `fetch` | közepes |
@@ -33,7 +33,9 @@
 | Statisztika-oldal, éves költségtörténet | `stats.php`, `storetotalyearlycost.php` | Worker + D1 + Cron | könnyű |
 | Naptár és iCal feed | `calendar.php`, `includes/ical_helper.php` | Worker | könnyű |
 | AI-javaslatok (OpenAI, Gemini, Ollama…) | `endpoints/ai/*`, `includes/ai_client.php` | `fetch` vagy Workers AI | könnyű |
-| Admin (felhasználók, regisztráció, SMTP, OIDC, mentés/visszaállítás) | `admin.php`, `endpoints/admin/*`, `endpoints/db/*` | Worker + D1 export | közepes |
+| Admin (felhasználók, regisztráció, SMTP, OIDC, mentés/visszaállítás) | `admin.php`, `endpoints/admin/*`, `endpoints/db/*` | Worker + D1 export | **felhasználók, regisztráció, export kész (2. fázis)**; SMTP a 3., OIDC a 6. fázisban |
+| Profil, beállítások, jelszócsere | `profile.php`, `settings.php`, `endpoints/user/*`, `api/settings/*`, `api/users/*` | Worker + D1 | **kész (2. fázis)** |
+| Adatmigráció PHP → D1 | — | Node CLI + `wrangler d1 execute` | **kész (2. fázis)** |
 | Webes felület (8 fő oldal), témák, egyedi CSS, PWA | `*.php`, `scripts/`, `styles/` | Workers Static Assets + Hono JSX SSR | **nagy** |
 | Többnyelvűség | `includes/i18n/*.php`, `scripts/i18n/*.js` | PHP tömbök → JSON (szkripttel) | könnyű |
 
@@ -42,12 +44,14 @@
 1. **Jelszó-hashek.** A PHP `password_hash()` bcryptet használ. A Worker az új jelszavakat PBKDF2-SHA256-tal hash-eli (natív WebCrypto, 100 000 iteráció), a régi bcrypt hasheket elfogadja, és sikeres belépéskor lecseréli. A bcrypt JS-ben fut, néhányszor 10 ms CPU — az ingyenes Workers csomag 10 ms-os CPU-limitjébe nem mindig fér bele, ezért **Workers Paid csomag ajánlott** (havi 5 USD), legalább a migrációs időszakra.
 2. **HTML-escapelt adatok.** A PHP a neveket `htmlspecialchars`-szal menti (`includes/inputvalidation.php`), tehát a régi adatbázisban `&amp;` szerepel `&` helyett. Az új Worker nyers szöveget tárol és megjelenítéskor escapel; az importálónak dekódolnia kell.
 3. **Hónap-túlcsordulás.** A PHP `DateInterval` jan. 31. + 1 hónapot márc. 2-re/3-ra teszi, és utána el is csúszik. A Worker a hónap utolsó napjára vágja (jan. 31. → feb. 29. → márc. 31.). Ez szándékos javítás, a tesztek rögzítik.
-4. **Ma esedékes fizetés.** A PHP cron a ma esedékes fizetést időnként (az aktuális óra miatt) a következő ciklusra léptette. A Worker a ma esedékest ma hagyja.
-5. **Időzóna.** A PHP a konténer `TZ` változóját használja; a Worker UTC-ben számol. Felhasználónkénti időzóna a 3. fázisban (értesítések időzítése miatt).
-6. **D1-korlátok.** Max. 100 kötött paraméter/lekérdezés, 10 GB/adatbázis, a batch tranzakcionális. Az alapértelmezett adatokat ezért `json_each()`-csel, egy paraméterrel szúrjuk be. Wallos-méretű adatnál ezek nem szűk keresztmetszetek.
-7. **Helyi hálózati elérés.** A felhőben futó Worker nem éri el a helyi Ollama-t, Gotify-t vagy ntfy-t. Ezekhez Cloudflare Tunnel kell, a „local webhook allowlist” funkció pedig értelmét veszti.
-8. **SMTP.** A Workers nem tud kényelmesen SMTP-t; e-mailt HTTP-s szolgáltatón keresztül küldünk. A felhasználónkénti SMTP-beállítás helyett instance-szintű küldőt javaslunk.
-9. **API-kulcsok** a régi adatbázisban titkosítatlanok. A kompatibilitás miatt egyelőre így maradnak (egyenlőségvizsgálat), később hash-elhetők, ha a régi klienseket már nem kell támogatni.
+4. **Egyszeri fizetések.** A PHP havi költség-számítása az egyszeri (cycle 5) tételt havi ismétlődőként számolja, a költségvetés-számítás pedig soha nem számolja. A Worker mindkét helyen pontosan egyszer, a saját hónapjában/időszakában számolja.
+5. **Devizaváltás frissítés előtt.** A PHP addig nem vált át devizát, amíg nem futott le árfolyam-frissítés; a Worker mindig a tárolt árfolyammal számol (alapból 1). Az importált adatbázison ez a két pont az egyetlen eltérés a PHP havi költségéhez képest (a tesztek rögzítik).
+6. **Ma esedékes fizetés.** A PHP cron a ma esedékes fizetést időnként (az aktuális óra miatt) a következő ciklusra léptette. A Worker a ma esedékest ma hagyja.
+7. **Időzóna.** A PHP a konténer `TZ` változóját használja; a Worker UTC-ben számol. Felhasználónkénti időzóna a 3. fázisban (értesítések időzítése miatt).
+8. **D1-korlátok.** Max. 100 kötött paraméter/lekérdezés, 10 GB/adatbázis, a batch tranzakcionális. Az alapértelmezett adatokat ezért `json_each()`-csel, egy paraméterrel szúrjuk be. Wallos-méretű adatnál ezek nem szűk keresztmetszetek.
+9. **Helyi hálózati elérés.** A felhőben futó Worker nem éri el a helyi Ollama-t, Gotify-t vagy ntfy-t. Ezekhez Cloudflare Tunnel kell, a „local webhook allowlist” funkció pedig értelmét veszti.
+10. **SMTP.** A Workers nem tud kényelmesen SMTP-t; e-mailt HTTP-s szolgáltatón keresztül küldünk. A felhasználónkénti SMTP-beállítás helyett instance-szintű küldőt javaslunk.
+11. **API-kulcsok** a régi adatbázisban titkosítatlanok. A kompatibilitás miatt egyelőre így maradnak (egyenlőségvizsgálat), később hash-elhetők, ha a régi klienseket már nem kell támogatni.
 
 ## 2. Ebben a körben elkészült (1. fázis)
 
@@ -62,6 +66,15 @@
 - **Cron:** naponta 01:00 UTC a lejárt automatikus megújítású előfizetések léptetése és a lejárt sessionök törlése.
 - **Tesztek:** 41 Vitest-teszt a valódi Workers runtime-ban (dátumaritmetika, árak, teljes API helyi D1-gyel, cron, régi bcrypt hash).
 
+## 2b. Elkészült a 2. fázisban
+
+- **Importáló** (`npm run import -- wallos.db`): a PHP adatbázisból SQL-fájlt készít a D1-hez, és részletes jelentést ad (átvett/kihagyott sorok, későbbi fázisra váró táblák, hivatkozott fájlok, figyelmeztetések). Dekódolja a HTML-entitásokat, javítja a típusokat és a hibás adatokat, megőrzi az azonosítókat, a jelszavakat és az API-kulcsokat. Valódi PHP-val generált adatbázison tesztelve (`scripts/fixtures/create-php-wallos-db.php`), és a havi költséget összevetettem az eredeti PHP API-val.
+- **Profil és beállítások:** profil módosítása (fődeviza csak saját devizából), megjelenési beállítások egyedi színekkel és CSS-sel, költségvetés és költségvetési időszakok (heti, kétheti, havi), jelszócsere (a többi session kijelentkeztetésével).
+- **Admin API:** példánybeállítások, felhasználók listája, felvétele (zárt regisztráció mellett is) és törlése (kaszkáddal minden adatával).
+- **Export:** a felhasználó összes adata egy JSON-fájlban.
+- **További PHP-kompatibilis végpontok:** `get_period_budget.php`, `get_user.php`, `set_budget.php`, `get_settings.php`, `set_settings.php`, `get_admin_settings.php`, `set_admin_settings.php`.
+- **Tesztek:** 64 teszt (az 1. fázis 41 tesztje mellett az importáló, a fiók-, költségvetés- és admin-funkciók).
+
 ## 3. Ütemterv
 
 Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőségi sorrend; a 3. és 4. párhuzamosítható.
@@ -70,7 +83,7 @@ Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőség
 |---|---|---|---|---|
 | 0 | Felmérés | Kódbázis, séma, cron, API feltérképezése | — | ✅ ez a dokumentum |
 | 1 | **Alap: Worker + D1** | Lásd 2. szakasz | — | ✅ |
-| 2 | Adatmigráció és fiókkezelés | `wallos.db` → D1 importáló szkript (HTML-dekódolás, típusjavítás, duplikátumok); profil és beállítások API (téma, nyelv, költségvetés és költségvetési időszakok, `budget_period_*`); jelszócsere; admin API (felhasználók listája, törlése, regisztráció nyitása, `max_users`); JSON export/mentés | 1 hét | Egy valós Wallos adatbázis hiba nélkül átjön, és ugyanazokat a havi költségeket adja |
+| 2 | **Adatmigráció és fiókkezelés** ✅ | `wallos.db` → D1 importáló szkript (HTML-dekódolás, típusjavítás, duplikátumok); profil és beállítások API (téma, nyelv, költségvetés és költségvetési időszakok, `budget_period_*`); jelszócsere; admin API (felhasználók listája, törlése, regisztráció nyitása, `max_users`); JSON export/mentés | — | ✅ (lásd 2b) |
 | 3 | Árfolyamok, értesítések, e-mail | Árfolyam-cron (Frankfurter alapból, Fixer/apilayer kulccsal); értesítési táblák migrációja; HTTP-csatornák: Discord, Telegram, Gotify, Pushover, ntfy, webhook, Mattermost, PushPlus, ServerChan; e-mail HTTP-szolgáltatón; Web Push (VAPID); lemondási értesítések; e-mail-megerősítés és jelszó-visszaállítás; felhasználónkénti időzóna; „teszt” végpontok | 1,5–2 hét | Minden csatornára megy tesztüzenet, a napi cron a beállított napokkal előre értesít |
 | 4 | Fájlok és logók | R2 a logóknak és avatároknak; feltöltés méret- és típusellenőrzéssel; logó letöltése URL-ről SSRF-védelemmel; logókereső; törléskor a fájl takarítása; Cloudflare Images átméretezés (háttéreltávolítás opcionális) | 1 hét | Logó feltölthető, URL-ről behúzható, és törléskor eltűnik az R2-ből |
 | 5 | Webes felület | Workers Static Assets a meglévő CSS/JS/képekhez; az oldalak portolása Hono JSX SSR-re (főoldal/előfizetések, statisztika, naptár, beállítások, profil, admin, belépés/regisztráció); i18n konverzió PHP → JSON; témák, egyedi CSS és színek; PWA manifest + service worker | 2–3 hét | A régi felület minden képernyője működik a Workeren |
@@ -78,7 +91,7 @@ Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőség
 | 7 | Statisztika+, naptár, AI | Éves költségtörténet (heti cron); iCal feed tokennel; naptárnézet; AI-javaslatok (OpenAI/Gemini, opcionálisan Workers AI) heti/havi cronnal | 1 hét | Statisztika-oldal és iCal paritás a PHP-val |
 | 8 | Élesítés | Egyedi domain, Cloudflare Access/WAF az admin felülethez; D1 Time Travel + időszakos export R2-be; GitHub Actions (teszt + deploy); monitorozás; átállás a PHP példányról (import, DNS) | 0,5–1 hét | Éles forgalom a Workeren, a PHP példány leállítható |
 
-**Összesen: kb. 8–10 hét** a teljes funkcióparitásig. A 2. fázis után az API már élesben használható meglévő kliensekkel (pl. Home Assistant integráció, mobilappok).
+**Hátralévő: kb. 7–9 hét** a teljes funkcióparitásig. Az API már most élesben használható meglévő kliensekkel (pl. Home Assistant integráció, mobilappok), és a meglévő adatok átköltöztethetők.
 
 ### Cron-megfeleltetés
 
@@ -107,4 +120,4 @@ npm run db:migrate:remote
 npm run deploy
 ```
 
-Ezután az első regisztrált felhasználó (`POST /api/auth/register`) lesz az admin.
+Ezután vagy az első regisztrált felhasználó (`POST /api/auth/register`) lesz az admin, vagy importáld a meglévő PHP adatbázist (README, „Átköltözés PHP Wallosról”).

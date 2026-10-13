@@ -71,7 +71,7 @@ describe("registration and login", () => {
     expect(data.paymentMethods[0]!.name).toBe("PayPal");
     expect(data.household.map((m) => m.name)).toEqual([user.username]);
     expect(data.mainCurrency).toBe(data.currency("EUR"));
-    expect(user.me.settings.user_id).toBe(user.userId);
+    expect(user.me.settings).toMatchObject({ dark_theme: 2, color_theme: "blue" });
   });
 
   it("rejects duplicate usernames case-insensitively", async () => {

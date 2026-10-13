@@ -131,3 +131,73 @@ export const monthlyCostQuery = z.object({
   month: z.coerce.number().int().min(1).max(12),
   year: z.coerce.number().int().min(1970).max(9999),
 });
+
+export const LANGUAGES = [
+  "ar", "az", "ca", "cs", "da", "de", "el", "en", "es", "fr", "hu", "id", "it", "ja", "ko", "nl",
+  "pl", "pt", "pt_br", "ro", "ru", "sl", "sr", "sr_lat", "tr", "uk", "vi", "zh_cn", "zh_tw",
+] as const;
+
+export const profileSchema = z
+  .object({
+    firstname: text(100),
+    lastname: text(100),
+    email: z.email().max(255),
+    language: z.enum(LANGUAGES),
+    main_currency: id,
+    avatar: text(2048),
+  })
+  .partial();
+
+const hexColor = z.string().trim().regex(/^#[0-9A-Fa-f]{6}$/, "Expected a colour like #0000ff");
+
+export const settingsSchema = z
+  .object({
+    dark_theme: z.coerce.number().int().min(0).max(2),
+    color_theme: z.enum(["blue", "green", "red", "yellow", "purple", "custom"]),
+    monthly_price: flag,
+    convert_currency: flag,
+    show_original_price: flag,
+    mobile_nav: flag,
+    show_subscription_progress: flag,
+    week_starts_sunday: flag,
+    upcoming_payments_limit: z.coerce.number().int().refine((n) => [3, 5, 10, 20].includes(n), "Must be 3, 5, 10 or 20"),
+    disabled_to_bottom: flag,
+    hide_disabled: flag,
+    remove_background: flag,
+    square_icons: flag,
+    main_color: hexColor,
+    accent_color: hexColor,
+    hover_color: hexColor,
+    css: z.string().max(50_000),
+  })
+  .partial()
+  .refine(
+    (s) => [s.main_color, s.accent_color, s.hover_color].every((c) => c === undefined) || [s.main_color, s.accent_color, s.hover_color].every((c) => c !== undefined),
+    { message: "main_color, accent_color and hover_color must be set together", path: ["main_color"] },
+  );
+
+export type SettingsInput = z.infer<typeof settingsSchema>;
+
+const money = z.coerce.number().min(0).max(1e12);
+
+export const budgetSchema = z
+  .object({
+    budget: money,
+    monthly_budget: money,
+    period_budget: money,
+    budget_period_type: z.enum(["weekly", "fortnightly", "monthly"]),
+    budget_period_anchor_date: date,
+  })
+  .partial()
+  .refine((b) => Object.values(b).some((v) => v !== undefined), {
+    message: "Provide at least one of budget, monthly_budget, period_budget, budget_period_type, budget_period_anchor_date",
+  });
+
+export const passwordSchema = z.object({
+  current_password: z.string().min(1).max(256),
+  new_password: z.string().min(8).max(256),
+});
+
+export const periodBudgetQuery = z.object({
+  reference_date: z.preprocess(emptyToUndefined, date.optional()),
+});

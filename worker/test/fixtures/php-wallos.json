@@ -1,0 +1,2069 @@
+{
+ "admin": [
+  {
+   "id": 1,
+   "registrations_open": 1,
+   "max_users": 10,
+   "require_email_verification": 0,
+   "server_url": "",
+   "smtp_address": "smtp.example.com",
+   "smtp_port": 587,
+   "smtp_username": "",
+   "smtp_password": "",
+   "from_email": "",
+   "encryption": "tls",
+   "login_disabled": 0,
+   "latest_version": "v2.21.1",
+   "update_notification": 0,
+   "oidc_oauth_enabled": 0,
+   "local_webhook_notifications_allowlist": "",
+   "allow_standard_users_local_webhooks": 0,
+   "vapid_public_key": "",
+   "vapid_private_key": ""
+  }
+ ],
+ "categories": [
+  {
+   "id": 1,
+   "name": "No category",
+   "order": 1,
+   "user_id": 1
+  },
+  {
+   "id": 2,
+   "name": "Entertainment",
+   "order": 2,
+   "user_id": 1
+  },
+  {
+   "id": 3,
+   "name": "Music",
+   "order": 3,
+   "user_id": 1
+  },
+  {
+   "id": 4,
+   "name": "Utilities",
+   "order": 4,
+   "user_id": 1
+  },
+  {
+   "id": 5,
+   "name": "Food & Beverages",
+   "order": 5,
+   "user_id": 1
+  },
+  {
+   "id": 6,
+   "name": "Health & Wellbeing",
+   "order": 6,
+   "user_id": 1
+  },
+  {
+   "id": 7,
+   "name": "Productivity",
+   "order": 7,
+   "user_id": 1
+  },
+  {
+   "id": 8,
+   "name": "Banking",
+   "order": 8,
+   "user_id": 1
+  },
+  {
+   "id": 9,
+   "name": "Transport",
+   "order": 9,
+   "user_id": 1
+  },
+  {
+   "id": 10,
+   "name": "Education",
+   "order": 10,
+   "user_id": 1
+  },
+  {
+   "id": 11,
+   "name": "Insurance",
+   "order": 11,
+   "user_id": 1
+  },
+  {
+   "id": 12,
+   "name": "Gaming",
+   "order": 12,
+   "user_id": 1
+  },
+  {
+   "id": 13,
+   "name": "News & Magazines",
+   "order": 13,
+   "user_id": 1
+  },
+  {
+   "id": 14,
+   "name": "Productivity",
+   "order": 14,
+   "user_id": 1
+  },
+  {
+   "id": 15,
+   "name": "Technology",
+   "order": 15,
+   "user_id": 1
+  },
+  {
+   "id": 16,
+   "name": "Charity & Donations",
+   "order": 16,
+   "user_id": 1
+  },
+  {
+   "id": 17,
+   "name": "No category",
+   "order": 1,
+   "user_id": 2
+  },
+  {
+   "id": 18,
+   "name": "Entertainment",
+   "order": 2,
+   "user_id": 2
+  },
+  {
+   "id": 19,
+   "name": "Music",
+   "order": 3,
+   "user_id": 2
+  },
+  {
+   "id": 20,
+   "name": "Utilities",
+   "order": 4,
+   "user_id": 2
+  },
+  {
+   "id": 21,
+   "name": "Food & Beverages",
+   "order": 5,
+   "user_id": 2
+  },
+  {
+   "id": 22,
+   "name": "Health & Wellbeing",
+   "order": 6,
+   "user_id": 2
+  },
+  {
+   "id": 23,
+   "name": "Productivity",
+   "order": 7,
+   "user_id": 2
+  },
+  {
+   "id": 24,
+   "name": "Banking",
+   "order": 8,
+   "user_id": 2
+  },
+  {
+   "id": 25,
+   "name": "Transport",
+   "order": 9,
+   "user_id": 2
+  },
+  {
+   "id": 26,
+   "name": "Education",
+   "order": 10,
+   "user_id": 2
+  },
+  {
+   "id": 27,
+   "name": "Insurance",
+   "order": 11,
+   "user_id": 2
+  },
+  {
+   "id": 28,
+   "name": "Gaming",
+   "order": 12,
+   "user_id": 2
+  },
+  {
+   "id": 29,
+   "name": "News & Magazines",
+   "order": 13,
+   "user_id": 2
+  },
+  {
+   "id": 30,
+   "name": "Productivity",
+   "order": 14,
+   "user_id": 2
+  },
+  {
+   "id": 31,
+   "name": "Technology",
+   "order": 15,
+   "user_id": 2
+  },
+  {
+   "id": 32,
+   "name": "Charity & Donations",
+   "order": 16,
+   "user_id": 2
+  },
+  {
+   "id": 33,
+   "name": "Kids &amp; Family",
+   "order": 99,
+   "user_id": 1
+  }
+ ],
+ "currencies": [
+  {
+   "id": 1,
+   "name": "Euro",
+   "symbol": "€",
+   "code": "EUR",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 2,
+   "name": "US Dollar",
+   "symbol": "$",
+   "code": "USD",
+   "rate": "1.0850",
+   "user_id": 1
+  },
+  {
+   "id": 3,
+   "name": "Japanese Yen",
+   "symbol": "¥",
+   "code": "JPY",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 4,
+   "name": "Bulgarian Lev",
+   "symbol": "лв",
+   "code": "BGN",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 5,
+   "name": "Czech Republic Koruna",
+   "symbol": "Kč",
+   "code": "CZK",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 6,
+   "name": "Danish Krone",
+   "symbol": "kr",
+   "code": "DKK",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 7,
+   "name": "British Pound Sterling",
+   "symbol": "£",
+   "code": "GBP",
+   "rate": "",
+   "user_id": 1
+  },
+  {
+   "id": 8,
+   "name": "Hungarian Forint",
+   "symbol": "Ft",
+   "code": "HUF",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 9,
+   "name": "Polish Zloty",
+   "symbol": "zł",
+   "code": "PLN",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 10,
+   "name": "Romanian Leu",
+   "symbol": "lei",
+   "code": "RON",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 11,
+   "name": "Swedish Krona",
+   "symbol": "kr",
+   "code": "SEK",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 12,
+   "name": "Swiss Franc",
+   "symbol": "Fr",
+   "code": "CHF",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 13,
+   "name": "Icelandic Króna",
+   "symbol": "kr",
+   "code": "ISK",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 14,
+   "name": "Norwegian Krone",
+   "symbol": "kr",
+   "code": "NOK",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 15,
+   "name": "Croatian Kuna",
+   "symbol": "kn",
+   "code": "HRK",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 16,
+   "name": "Russian Ruble",
+   "symbol": "₽",
+   "code": "RUB",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 17,
+   "name": "Turkish Lira",
+   "symbol": "₺",
+   "code": "TRY",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 18,
+   "name": "Australian Dollar",
+   "symbol": "$",
+   "code": "AUD",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 19,
+   "name": "Brazilian Real",
+   "symbol": "R$",
+   "code": "BRL",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 20,
+   "name": "Canadian Dollar",
+   "symbol": "$",
+   "code": "CAD",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 21,
+   "name": "Chinese Yuan",
+   "symbol": "¥",
+   "code": "CNY",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 22,
+   "name": "Hong Kong Dollar",
+   "symbol": "HK$",
+   "code": "HKD",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 23,
+   "name": "Indonesian Rupiah",
+   "symbol": "Rp",
+   "code": "IDR",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 24,
+   "name": "Israeli New Sheqel",
+   "symbol": "₪",
+   "code": "ILS",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 25,
+   "name": "Indian Rupee",
+   "symbol": "₹",
+   "code": "INR",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 26,
+   "name": "South Korean Won",
+   "symbol": "₩",
+   "code": "KRW",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 27,
+   "name": "Mexican Peso",
+   "symbol": "Mex$",
+   "code": "MXN",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 28,
+   "name": "Malaysian Ringgit",
+   "symbol": "RM",
+   "code": "MYR",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 29,
+   "name": "New Zealand Dollar",
+   "symbol": "NZ$",
+   "code": "NZD",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 30,
+   "name": "Philippine Peso",
+   "symbol": "₱",
+   "code": "PHP",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 31,
+   "name": "Singapore Dollar",
+   "symbol": "S$",
+   "code": "SGD",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 32,
+   "name": "Thai Baht",
+   "symbol": "฿",
+   "code": "THB",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 33,
+   "name": "South African Rand",
+   "symbol": "R",
+   "code": "ZAR",
+   "rate": "1",
+   "user_id": 1
+  },
+  {
+   "id": 34,
+   "name": "Euro",
+   "symbol": "€",
+   "code": "EUR",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 35,
+   "name": "US Dollar",
+   "symbol": "$",
+   "code": "USD",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 36,
+   "name": "Japanese Yen",
+   "symbol": "¥",
+   "code": "JPY",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 37,
+   "name": "Bulgarian Lev",
+   "symbol": "лв",
+   "code": "BGN",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 38,
+   "name": "Czech Republic Koruna",
+   "symbol": "Kč",
+   "code": "CZK",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 39,
+   "name": "Danish Krone",
+   "symbol": "kr",
+   "code": "DKK",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 40,
+   "name": "British Pound Sterling",
+   "symbol": "£",
+   "code": "GBP",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 41,
+   "name": "Hungarian Forint",
+   "symbol": "Ft",
+   "code": "HUF",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 42,
+   "name": "Polish Zloty",
+   "symbol": "zł",
+   "code": "PLN",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 43,
+   "name": "Romanian Leu",
+   "symbol": "lei",
+   "code": "RON",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 44,
+   "name": "Swedish Krona",
+   "symbol": "kr",
+   "code": "SEK",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 45,
+   "name": "Swiss Franc",
+   "symbol": "Fr",
+   "code": "CHF",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 46,
+   "name": "Icelandic Króna",
+   "symbol": "kr",
+   "code": "ISK",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 47,
+   "name": "Norwegian Krone",
+   "symbol": "kr",
+   "code": "NOK",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 48,
+   "name": "Croatian Kuna",
+   "symbol": "kn",
+   "code": "HRK",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 49,
+   "name": "Russian Ruble",
+   "symbol": "₽",
+   "code": "RUB",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 50,
+   "name": "Turkish Lira",
+   "symbol": "₺",
+   "code": "TRY",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 51,
+   "name": "Australian Dollar",
+   "symbol": "$",
+   "code": "AUD",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 52,
+   "name": "Brazilian Real",
+   "symbol": "R$",
+   "code": "BRL",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 53,
+   "name": "Canadian Dollar",
+   "symbol": "$",
+   "code": "CAD",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 54,
+   "name": "Chinese Yuan",
+   "symbol": "¥",
+   "code": "CNY",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 55,
+   "name": "Hong Kong Dollar",
+   "symbol": "HK$",
+   "code": "HKD",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 56,
+   "name": "Indonesian Rupiah",
+   "symbol": "Rp",
+   "code": "IDR",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 57,
+   "name": "Israeli New Sheqel",
+   "symbol": "₪",
+   "code": "ILS",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 58,
+   "name": "Indian Rupee",
+   "symbol": "₹",
+   "code": "INR",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 59,
+   "name": "South Korean Won",
+   "symbol": "₩",
+   "code": "KRW",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 60,
+   "name": "Mexican Peso",
+   "symbol": "Mex$",
+   "code": "MXN",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 61,
+   "name": "Malaysian Ringgit",
+   "symbol": "RM",
+   "code": "MYR",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 62,
+   "name": "New Zealand Dollar",
+   "symbol": "NZ$",
+   "code": "NZD",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 63,
+   "name": "Philippine Peso",
+   "symbol": "₱",
+   "code": "PHP",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 64,
+   "name": "Singapore Dollar",
+   "symbol": "S$",
+   "code": "SGD",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 65,
+   "name": "Thai Baht",
+   "symbol": "฿",
+   "code": "THB",
+   "rate": "1",
+   "user_id": 2
+  },
+  {
+   "id": 66,
+   "name": "South African Rand",
+   "symbol": "R",
+   "code": "ZAR",
+   "rate": "1",
+   "user_id": 2
+  }
+ ],
+ "custom_colors": [
+  {
+   "main_color": "#112233",
+   "accent_color": "#445566",
+   "hover_color": "#778899",
+   "user_id": 1
+  }
+ ],
+ "cycles": [
+  {
+   "id": 1,
+   "days": 1,
+   "name": "Daily"
+  },
+  {
+   "id": 2,
+   "days": 7,
+   "name": "Weekly"
+  },
+  {
+   "id": 3,
+   "days": 30,
+   "name": "Monthly"
+  },
+  {
+   "id": 4,
+   "days": 365,
+   "name": "Yearly"
+  },
+  {
+   "id": 5,
+   "days": 0,
+   "name": "One-time"
+  }
+ ],
+ "email_notifications": [
+  {
+   "enabled": 1,
+   "smtp_address": "smtp.example.com",
+   "smtp_port": 587,
+   "smtp_username": "",
+   "smtp_password": "",
+   "from_email": "",
+   "encryption": "tls",
+   "user_id": 1,
+   "other_emails": ""
+  }
+ ],
+ "frequencies": [
+  {
+   "id": 1,
+   "name": 1
+  },
+  {
+   "id": 2,
+   "name": 2
+  },
+  {
+   "id": 3,
+   "name": 3
+  },
+  {
+   "id": 4,
+   "name": 4
+  },
+  {
+   "id": 5,
+   "name": 5
+  },
+  {
+   "id": 6,
+   "name": 6
+  },
+  {
+   "id": 7,
+   "name": 7
+  },
+  {
+   "id": 8,
+   "name": 8
+  },
+  {
+   "id": 9,
+   "name": 9
+  },
+  {
+   "id": 10,
+   "name": 10
+  },
+  {
+   "id": 11,
+   "name": 11
+  },
+  {
+   "id": 12,
+   "name": 12
+  },
+  {
+   "id": 13,
+   "name": 13
+  },
+  {
+   "id": 14,
+   "name": 14
+  },
+  {
+   "id": 15,
+   "name": 15
+  },
+  {
+   "id": 16,
+   "name": 16
+  },
+  {
+   "id": 17,
+   "name": 17
+  },
+  {
+   "id": 18,
+   "name": 18
+  },
+  {
+   "id": 19,
+   "name": 19
+  },
+  {
+   "id": 20,
+   "name": 20
+  },
+  {
+   "id": 21,
+   "name": 21
+  },
+  {
+   "id": 22,
+   "name": 22
+  },
+  {
+   "id": 23,
+   "name": 23
+  },
+  {
+   "id": 24,
+   "name": 24
+  },
+  {
+   "id": 25,
+   "name": 25
+  },
+  {
+   "id": 26,
+   "name": 26
+  },
+  {
+   "id": 27,
+   "name": 27
+  },
+  {
+   "id": 28,
+   "name": 28
+  },
+  {
+   "id": 29,
+   "name": 29
+  },
+  {
+   "id": 30,
+   "name": 30
+  },
+  {
+   "id": 31,
+   "name": 31
+  }
+ ],
+ "household": [
+  {
+   "id": 1,
+   "name": "admin",
+   "email": "",
+   "user_id": 1
+  },
+  {
+   "id": 2,
+   "name": "Anna &quot;Panni&quot; &lt;K&gt;",
+   "email": "anna@example.com",
+   "user_id": 1
+  },
+  {
+   "id": 3,
+   "name": "bob",
+   "email": "",
+   "user_id": 2
+  }
+ ],
+ "migrations": [
+  {
+   "id": 1,
+   "migration": "migrations/000001.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 2,
+   "migration": "migrations/000002.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 3,
+   "migration": "migrations/000003.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 4,
+   "migration": "migrations/000004.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 5,
+   "migration": "migrations/000005.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 6,
+   "migration": "migrations/000006.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 7,
+   "migration": "migrations/000007.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 8,
+   "migration": "migrations/000008.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 9,
+   "migration": "migrations/000009.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 10,
+   "migration": "migrations/000010.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 11,
+   "migration": "migrations/000011.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 12,
+   "migration": "migrations/000012.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 13,
+   "migration": "migrations/000013.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 14,
+   "migration": "migrations/000014.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 15,
+   "migration": "migrations/000015.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 16,
+   "migration": "migrations/000016.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 17,
+   "migration": "migrations/000017.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 18,
+   "migration": "migrations/000018.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 19,
+   "migration": "migrations/000019.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 20,
+   "migration": "migrations/000020.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 21,
+   "migration": "migrations/000021.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 22,
+   "migration": "migrations/000022.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 23,
+   "migration": "migrations/000023.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 24,
+   "migration": "migrations/000024.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 25,
+   "migration": "migrations/000025.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 26,
+   "migration": "migrations/000026.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 27,
+   "migration": "migrations/000027.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 28,
+   "migration": "migrations/000028.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 29,
+   "migration": "migrations/000029.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 30,
+   "migration": "migrations/000030.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 31,
+   "migration": "migrations/000031.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 32,
+   "migration": "migrations/000032.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 33,
+   "migration": "migrations/000033.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 34,
+   "migration": "migrations/000034.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 35,
+   "migration": "migrations/000035.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 36,
+   "migration": "migrations/000036.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 37,
+   "migration": "migrations/000037.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 38,
+   "migration": "migrations/000038.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 39,
+   "migration": "migrations/000039.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 40,
+   "migration": "migrations/000040.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 41,
+   "migration": "migrations/000041.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 42,
+   "migration": "migrations/000042.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 43,
+   "migration": "migrations/000043.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 44,
+   "migration": "migrations/000044.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 45,
+   "migration": "migrations/000045.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 46,
+   "migration": "migrations/000046.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 47,
+   "migration": "migrations/000047.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 48,
+   "migration": "migrations/000048.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 49,
+   "migration": "migrations/000050.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 50,
+   "migration": "migrations/000051.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 51,
+   "migration": "migrations/000052.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 52,
+   "migration": "migrations/000053.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 53,
+   "migration": "migrations/000054.php",
+   "migrated_at": "2026-10-13 19:39:52"
+  },
+  {
+   "id": 54,
+   "migration": "migrations/000055.php",
+   "migrated_at": "2026-10-13 19:39:53"
+  },
+  {
+   "id": 55,
+   "migration": "migrations/000056.php",
+   "migrated_at": "2026-10-13 19:39:53"
+  },
+  {
+   "id": 56,
+   "migration": "migrations/000057.php",
+   "migrated_at": "2026-10-13 19:39:53"
+  },
+  {
+   "id": 57,
+   "migration": "migrations/000058.php",
+   "migrated_at": "2026-10-13 19:39:53"
+  },
+  {
+   "id": 58,
+   "migration": "migrations/000059.php",
+   "migrated_at": "2026-10-13 19:39:53"
+  }
+ ],
+ "payment_methods": [
+  {
+   "id": 1,
+   "name": "PayPal",
+   "icon": "images/uploads/icons/paypal.png",
+   "enabled": 1,
+   "order": 1,
+   "user_id": 1
+  },
+  {
+   "id": 2,
+   "name": "Credit Card",
+   "icon": "images/uploads/icons/creditcard.png",
+   "enabled": 1,
+   "order": 2,
+   "user_id": 1
+  },
+  {
+   "id": 3,
+   "name": "Bank Transfer",
+   "icon": "images/uploads/icons/banktransfer.png",
+   "enabled": 1,
+   "order": 3,
+   "user_id": 1
+  },
+  {
+   "id": 4,
+   "name": "Direct Debit",
+   "icon": "images/uploads/icons/directdebit.png",
+   "enabled": 1,
+   "order": 4,
+   "user_id": 1
+  },
+  {
+   "id": 5,
+   "name": "Money",
+   "icon": "images/uploads/icons/money.png",
+   "enabled": 1,
+   "order": 5,
+   "user_id": 1
+  },
+  {
+   "id": 6,
+   "name": "Google Pay",
+   "icon": "images/uploads/icons/googlepay.png",
+   "enabled": 1,
+   "order": 6,
+   "user_id": 1
+  },
+  {
+   "id": 7,
+   "name": "Samsung Pay",
+   "icon": "images/uploads/icons/samsungpay.png",
+   "enabled": 1,
+   "order": 7,
+   "user_id": 1
+  },
+  {
+   "id": 8,
+   "name": "Apple Pay",
+   "icon": "images/uploads/icons/applepay.png",
+   "enabled": 1,
+   "order": 8,
+   "user_id": 1
+  },
+  {
+   "id": 9,
+   "name": "Crypto",
+   "icon": "images/uploads/icons/crypto.png",
+   "enabled": 1,
+   "order": 9,
+   "user_id": 1
+  },
+  {
+   "id": 10,
+   "name": "Klarna",
+   "icon": "images/uploads/icons/klarna.png",
+   "enabled": 1,
+   "order": 10,
+   "user_id": 1
+  },
+  {
+   "id": 11,
+   "name": "Amazon Pay",
+   "icon": "images/uploads/icons/amazonpay.png",
+   "enabled": 1,
+   "order": 11,
+   "user_id": 1
+  },
+  {
+   "id": 12,
+   "name": "SEPA",
+   "icon": "images/uploads/icons/sepa.png",
+   "enabled": 1,
+   "order": 12,
+   "user_id": 1
+  },
+  {
+   "id": 13,
+   "name": "Skrill",
+   "icon": "images/uploads/icons/skrill.png",
+   "enabled": 1,
+   "order": 13,
+   "user_id": 1
+  },
+  {
+   "id": 14,
+   "name": "Sofort",
+   "icon": "images/uploads/icons/sofort.png",
+   "enabled": 1,
+   "order": 14,
+   "user_id": 1
+  },
+  {
+   "id": 15,
+   "name": "Stripe",
+   "icon": "images/uploads/icons/stripe.png",
+   "enabled": 1,
+   "order": 15,
+   "user_id": 1
+  },
+  {
+   "id": 16,
+   "name": "Affirm",
+   "icon": "images/uploads/icons/affirm.png",
+   "enabled": 1,
+   "order": 16,
+   "user_id": 1
+  },
+  {
+   "id": 17,
+   "name": "AliPay",
+   "icon": "images/uploads/icons/alipay.png",
+   "enabled": 1,
+   "order": 17,
+   "user_id": 1
+  },
+  {
+   "id": 18,
+   "name": "Elo",
+   "icon": "images/uploads/icons/elo.png",
+   "enabled": 1,
+   "order": 18,
+   "user_id": 1
+  },
+  {
+   "id": 19,
+   "name": "Facebook Pay",
+   "icon": "images/uploads/icons/facebookpay.png",
+   "enabled": 1,
+   "order": 19,
+   "user_id": 1
+  },
+  {
+   "id": 20,
+   "name": "GiroPay",
+   "icon": "images/uploads/icons/giropay.png",
+   "enabled": 1,
+   "order": 20,
+   "user_id": 1
+  },
+  {
+   "id": 21,
+   "name": "iDeal",
+   "icon": "images/uploads/icons/ideal.png",
+   "enabled": 1,
+   "order": 21,
+   "user_id": 1
+  },
+  {
+   "id": 22,
+   "name": "Union Pay",
+   "icon": "images/uploads/icons/unionpay.png",
+   "enabled": 1,
+   "order": 22,
+   "user_id": 1
+  },
+  {
+   "id": 23,
+   "name": "Interac",
+   "icon": "images/uploads/icons/interac.png",
+   "enabled": 1,
+   "order": 23,
+   "user_id": 1
+  },
+  {
+   "id": 24,
+   "name": "WeChat",
+   "icon": "images/uploads/icons/wechat.png",
+   "enabled": 1,
+   "order": 24,
+   "user_id": 1
+  },
+  {
+   "id": 25,
+   "name": "Paysafe",
+   "icon": "images/uploads/icons/paysafe.png",
+   "enabled": 1,
+   "order": 25,
+   "user_id": 1
+  },
+  {
+   "id": 26,
+   "name": "Poli",
+   "icon": "images/uploads/icons/poli.png",
+   "enabled": 1,
+   "order": 26,
+   "user_id": 1
+  },
+  {
+   "id": 27,
+   "name": "Qiwi",
+   "icon": "images/uploads/icons/qiwi.png",
+   "enabled": 1,
+   "order": 27,
+   "user_id": 1
+  },
+  {
+   "id": 28,
+   "name": "ShopPay",
+   "icon": "images/uploads/icons/shoppay.png",
+   "enabled": 1,
+   "order": 28,
+   "user_id": 1
+  },
+  {
+   "id": 29,
+   "name": "Venmo",
+   "icon": "images/uploads/icons/venmo.png",
+   "enabled": 1,
+   "order": 29,
+   "user_id": 1
+  },
+  {
+   "id": 30,
+   "name": "VeriFone",
+   "icon": "images/uploads/icons/verifone.png",
+   "enabled": 1,
+   "order": 30,
+   "user_id": 1
+  },
+  {
+   "id": 31,
+   "name": "WebMoney",
+   "icon": "images/uploads/icons/webmoney.png",
+   "enabled": 1,
+   "order": 31,
+   "user_id": 1
+  },
+  {
+   "id": 32,
+   "name": "PayPal",
+   "icon": "images/uploads/icons/paypal.png",
+   "enabled": 1,
+   "order": 1,
+   "user_id": 2
+  },
+  {
+   "id": 33,
+   "name": "Credit Card",
+   "icon": "images/uploads/icons/creditcard.png",
+   "enabled": 1,
+   "order": 2,
+   "user_id": 2
+  },
+  {
+   "id": 34,
+   "name": "Bank Transfer",
+   "icon": "images/uploads/icons/banktransfer.png",
+   "enabled": 1,
+   "order": 3,
+   "user_id": 2
+  },
+  {
+   "id": 35,
+   "name": "Direct Debit",
+   "icon": "images/uploads/icons/directdebit.png",
+   "enabled": 1,
+   "order": 4,
+   "user_id": 2
+  },
+  {
+   "id": 36,
+   "name": "Money",
+   "icon": "images/uploads/icons/money.png",
+   "enabled": 1,
+   "order": 5,
+   "user_id": 2
+  },
+  {
+   "id": 37,
+   "name": "Google Pay",
+   "icon": "images/uploads/icons/googlepay.png",
+   "enabled": 1,
+   "order": 6,
+   "user_id": 2
+  },
+  {
+   "id": 38,
+   "name": "Samsung Pay",
+   "icon": "images/uploads/icons/samsungpay.png",
+   "enabled": 1,
+   "order": 7,
+   "user_id": 2
+  },
+  {
+   "id": 39,
+   "name": "Apple Pay",
+   "icon": "images/uploads/icons/applepay.png",
+   "enabled": 1,
+   "order": 8,
+   "user_id": 2
+  },
+  {
+   "id": 40,
+   "name": "Crypto",
+   "icon": "images/uploads/icons/crypto.png",
+   "enabled": 1,
+   "order": 9,
+   "user_id": 2
+  },
+  {
+   "id": 41,
+   "name": "Klarna",
+   "icon": "images/uploads/icons/klarna.png",
+   "enabled": 1,
+   "order": 10,
+   "user_id": 2
+  },
+  {
+   "id": 42,
+   "name": "Amazon Pay",
+   "icon": "images/uploads/icons/amazonpay.png",
+   "enabled": 1,
+   "order": 11,
+   "user_id": 2
+  },
+  {
+   "id": 43,
+   "name": "SEPA",
+   "icon": "images/uploads/icons/sepa.png",
+   "enabled": 1,
+   "order": 12,
+   "user_id": 2
+  },
+  {
+   "id": 44,
+   "name": "Skrill",
+   "icon": "images/uploads/icons/skrill.png",
+   "enabled": 1,
+   "order": 13,
+   "user_id": 2
+  },
+  {
+   "id": 45,
+   "name": "Sofort",
+   "icon": "images/uploads/icons/sofort.png",
+   "enabled": 1,
+   "order": 14,
+   "user_id": 2
+  },
+  {
+   "id": 46,
+   "name": "Stripe",
+   "icon": "images/uploads/icons/stripe.png",
+   "enabled": 1,
+   "order": 15,
+   "user_id": 2
+  },
+  {
+   "id": 47,
+   "name": "Affirm",
+   "icon": "images/uploads/icons/affirm.png",
+   "enabled": 1,
+   "order": 16,
+   "user_id": 2
+  },
+  {
+   "id": 48,
+   "name": "AliPay",
+   "icon": "images/uploads/icons/alipay.png",
+   "enabled": 1,
+   "order": 17,
+   "user_id": 2
+  },
+  {
+   "id": 49,
+   "name": "Elo",
+   "icon": "images/uploads/icons/elo.png",
+   "enabled": 1,
+   "order": 18,
+   "user_id": 2
+  },
+  {
+   "id": 50,
+   "name": "Facebook Pay",
+   "icon": "images/uploads/icons/facebookpay.png",
+   "enabled": 1,
+   "order": 19,
+   "user_id": 2
+  },
+  {
+   "id": 51,
+   "name": "GiroPay",
+   "icon": "images/uploads/icons/giropay.png",
+   "enabled": 1,
+   "order": 20,
+   "user_id": 2
+  },
+  {
+   "id": 52,
+   "name": "iDeal",
+   "icon": "images/uploads/icons/ideal.png",
+   "enabled": 1,
+   "order": 21,
+   "user_id": 2
+  },
+  {
+   "id": 53,
+   "name": "Union Pay",
+   "icon": "images/uploads/icons/unionpay.png",
+   "enabled": 1,
+   "order": 22,
+   "user_id": 2
+  },
+  {
+   "id": 54,
+   "name": "Interac",
+   "icon": "images/uploads/icons/interac.png",
+   "enabled": 1,
+   "order": 23,
+   "user_id": 2
+  },
+  {
+   "id": 55,
+   "name": "WeChat",
+   "icon": "images/uploads/icons/wechat.png",
+   "enabled": 1,
+   "order": 24,
+   "user_id": 2
+  },
+  {
+   "id": 56,
+   "name": "Paysafe",
+   "icon": "images/uploads/icons/paysafe.png",
+   "enabled": 1,
+   "order": 25,
+   "user_id": 2
+  },
+  {
+   "id": 57,
+   "name": "Poli",
+   "icon": "images/uploads/icons/poli.png",
+   "enabled": 1,
+   "order": 26,
+   "user_id": 2
+  },
+  {
+   "id": 58,
+   "name": "Qiwi",
+   "icon": "images/uploads/icons/qiwi.png",
+   "enabled": 1,
+   "order": 27,
+   "user_id": 2
+  },
+  {
+   "id": 59,
+   "name": "ShopPay",
+   "icon": "images/uploads/icons/shoppay.png",
+   "enabled": 1,
+   "order": 28,
+   "user_id": 2
+  },
+  {
+   "id": 60,
+   "name": "Venmo",
+   "icon": "images/uploads/icons/venmo.png",
+   "enabled": 1,
+   "order": 29,
+   "user_id": 2
+  },
+  {
+   "id": 61,
+   "name": "VeriFone",
+   "icon": "images/uploads/icons/verifone.png",
+   "enabled": 1,
+   "order": 30,
+   "user_id": 2
+  },
+  {
+   "id": 62,
+   "name": "WebMoney",
+   "icon": "images/uploads/icons/webmoney.png",
+   "enabled": 1,
+   "order": 31,
+   "user_id": 2
+  }
+ ],
+ "settings": [
+  {
+   "dark_theme": 0,
+   "monthly_price": 0,
+   "convert_currency": 0,
+   "remove_background": 0,
+   "color_theme": "blue",
+   "hide_disabled": 0,
+   "user_id": 1,
+   "disabled_to_bottom": 0,
+   "show_original_price": 0,
+   "mobile_nav": 0,
+   "show_subscription_progress": 0,
+   "week_starts_sunday": 0,
+   "upcoming_payments_limit": 3
+  },
+  {
+   "dark_theme": 0,
+   "monthly_price": 0,
+   "convert_currency": 0,
+   "remove_background": 0,
+   "color_theme": "red",
+   "hide_disabled": 0,
+   "user_id": 1,
+   "disabled_to_bottom": 0,
+   "show_original_price": 0,
+   "mobile_nav": 0,
+   "show_subscription_progress": 0,
+   "week_starts_sunday": 0,
+   "upcoming_payments_limit": 3
+  },
+  {
+   "dark_theme": 1,
+   "monthly_price": 0,
+   "convert_currency": 0,
+   "remove_background": 0,
+   "color_theme": "green",
+   "hide_disabled": 0,
+   "user_id": 1,
+   "disabled_to_bottom": 1,
+   "show_original_price": 0,
+   "mobile_nav": 0,
+   "show_subscription_progress": 0,
+   "week_starts_sunday": 0,
+   "upcoming_payments_limit": 3
+  }
+ ],
+ "subscriptions": [
+  {
+   "id": 1,
+   "name": "Netflix",
+   "logo": "1700000000-netflix.png",
+   "price": 15.99,
+   "currency_id": 1,
+   "next_payment": "2024-05-10",
+   "cycle": 3,
+   "frequency": 1,
+   "notes": "",
+   "payment_method_id": 1,
+   "payer_user_id": 1,
+   "category_id": 1,
+   "notify": 1,
+   "url": "https://netflix.com/?a=1&amp;b=2",
+   "inactive": 0,
+   "notify_days_before": -1,
+   "user_id": 1,
+   "cancellation_date": null,
+   "replacement_subscription_id": null,
+   "start_date": "2020-01-10",
+   "auto_renew": 1,
+   "logo_text_color": null,
+   "logo_variant": null
+  },
+  {
+   "id": 2,
+   "name": "Tom &amp; Jerry&#039;s &lt;Plus&gt;",
+   "logo": "",
+   "price": 10.85,
+   "currency_id": 2,
+   "next_payment": "2024-05-20",
+   "cycle": 3,
+   "frequency": 1,
+   "notes": "Fish & chips **bold**",
+   "payment_method_id": 1,
+   "payer_user_id": 1,
+   "category_id": 3,
+   "notify": 1,
+   "url": "",
+   "inactive": 0,
+   "notify_days_before": -1,
+   "user_id": 1,
+   "cancellation_date": null,
+   "replacement_subscription_id": null,
+   "start_date": "",
+   "auto_renew": 1,
+   "logo_text_color": null,
+   "logo_variant": null
+  },
+  {
+   "id": 3,
+   "name": "Domain",
+   "logo": "",
+   "price": 12,
+   "currency_id": 1,
+   "next_payment": "2024-11-01",
+   "cycle": 4,
+   "frequency": 1,
+   "notes": "",
+   "payment_method_id": 1,
+   "payer_user_id": 1,
+   "category_id": 1,
+   "notify": 1,
+   "url": "",
+   "inactive": 0,
+   "notify_days_before": -1,
+   "user_id": 1,
+   "cancellation_date": null,
+   "replacement_subscription_id": null,
+   "start_date": "2019-11-01",
+   "auto_renew": 0,
+   "logo_text_color": null,
+   "logo_variant": null
+  },
+  {
+   "id": 4,
+   "name": "Old gym",
+   "logo": "",
+   "price": 30,
+   "currency_id": 1,
+   "next_payment": "",
+   "cycle": 3,
+   "frequency": 1,
+   "notes": "",
+   "payment_method_id": 1,
+   "payer_user_id": 1,
+   "category_id": 1,
+   "notify": 1,
+   "url": "",
+   "inactive": 1,
+   "notify_days_before": -1,
+   "user_id": 1,
+   "cancellation_date": null,
+   "replacement_subscription_id": 5,
+   "start_date": "",
+   "auto_renew": 1,
+   "logo_text_color": null,
+   "logo_variant": null
+  },
+  {
+   "id": 5,
+   "name": "New gym",
+   "logo": "",
+   "price": 25,
+   "currency_id": 1,
+   "next_payment": "2024-05-03",
+   "cycle": 3,
+   "frequency": 1,
+   "notes": "",
+   "payment_method_id": 1,
+   "payer_user_id": 1,
+   "category_id": 1,
+   "notify": 1,
+   "url": "",
+   "inactive": 0,
+   "notify_days_before": -1,
+   "user_id": 1,
+   "cancellation_date": null,
+   "replacement_subscription_id": 4,
+   "start_date": "2024-04-03",
+   "auto_renew": 1,
+   "logo_text_color": null,
+   "logo_variant": null
+  },
+  {
+   "id": 6,
+   "name": "Course",
+   "logo": "",
+   "price": 300,
+   "currency_id": 1,
+   "next_payment": "2024-05-25",
+   "cycle": 5,
+   "frequency": 1,
+   "notes": "",
+   "payment_method_id": 1,
+   "payer_user_id": 1,
+   "category_id": 1,
+   "notify": 1,
+   "url": "",
+   "inactive": 0,
+   "notify_days_before": -1,
+   "user_id": 1,
+   "cancellation_date": null,
+   "replacement_subscription_id": 999,
+   "start_date": "",
+   "auto_renew": 0,
+   "logo_text_color": null,
+   "logo_variant": null
+  },
+  {
+   "id": 7,
+   "name": "Sneaky",
+   "logo": "",
+   "price": 1,
+   "currency_id": 1,
+   "next_payment": "2024-05-05",
+   "cycle": 3,
+   "frequency": 1,
+   "notes": "",
+   "payment_method_id": 1,
+   "payer_user_id": 1,
+   "category_id": 32,
+   "notify": 1,
+   "url": "",
+   "inactive": 0,
+   "notify_days_before": -1,
+   "user_id": 1,
+   "cancellation_date": null,
+   "replacement_subscription_id": null,
+   "start_date": "",
+   "auto_renew": 1,
+   "logo_text_color": null,
+   "logo_variant": null
+  },
+  {
+   "id": 8,
+   "name": "Orphan",
+   "logo": "",
+   "price": 1,
+   "currency_id": 1,
+   "next_payment": "2024-05-05",
+   "cycle": 3,
+   "frequency": 1,
+   "notes": "",
+   "payment_method_id": 1,
+   "payer_user_id": 1,
+   "category_id": 1,
+   "notify": 1,
+   "url": "",
+   "inactive": 0,
+   "notify_days_before": -1,
+   "user_id": 99,
+   "cancellation_date": null,
+   "replacement_subscription_id": null,
+   "start_date": "",
+   "auto_renew": 1,
+   "logo_text_color": null,
+   "logo_variant": null
+  },
+  {
+   "id": 9,
+   "name": "Bob TV",
+   "logo": "",
+   "price": 4990,
+   "currency_id": 41,
+   "next_payment": "2024-05-15",
+   "cycle": 3,
+   "frequency": 1,
+   "notes": "",
+   "payment_method_id": 32,
+   "payer_user_id": 3,
+   "category_id": 32,
+   "notify": 1,
+   "url": "",
+   "inactive": 0,
+   "notify_days_before": -1,
+   "user_id": 2,
+   "cancellation_date": null,
+   "replacement_subscription_id": null,
+   "start_date": "",
+   "auto_renew": 1,
+   "logo_text_color": null,
+   "logo_variant": null
+  }
+ ],
+ "user": [
+  {
+   "id": 1,
+   "username": "admin",
+   "email": "admin@example.com",
+   "password": "$2y$10$t0LeGr.kzRUG2MdNu2K0.OqZuAgpmxxwTjMqTvq.5KKFv1fNxjr/6",
+   "main_currency": 1,
+   "avatar": "images/uploads/logos/avatars/me.png",
+   "language": "en",
+   "budget": 200,
+   "totp_enabled": 0,
+   "api_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "firstname": "Zoë &amp; Co",
+   "lastname": "O&#039;Brien",
+   "oidc_sub": null,
+   "budget_period_type": "monthly",
+   "budget_period_anchor_date": "2024-01-15",
+   "period_budget": 150
+  },
+  {
+   "id": 2,
+   "username": "bob",
+   "email": "bob@example.com",
+   "password": "$2y$10$gAqMYe9uig5rxGp8XNGnuuugvpqAPSPgBaDqOQfPH5beRIjD9WddC",
+   "main_currency": 41,
+   "avatar": null,
+   "language": "hu",
+   "budget": 0,
+   "totp_enabled": 0,
+   "api_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "firstname": "",
+   "lastname": "",
+   "oidc_sub": null,
+   "budget_period_type": "monthly",
+   "budget_period_anchor_date": "2026-10-13",
+   "period_budget": 0
+  },
+  {
+   "id": 3,
+   "username": "BOB",
+   "email": "bob2@example.com",
+   "password": "$2y$10$DbJgbNYqBjVw7618DkVuH.SdGbN.LKpXRD/Hl3MB0XyEPdr/bqcCu",
+   "main_currency": 0,
+   "avatar": null,
+   "language": "en",
+   "budget": 0,
+   "totp_enabled": 0,
+   "api_key": "",
+   "firstname": "",
+   "lastname": "",
+   "oidc_sub": null,
+   "budget_period_type": "monthly",
+   "budget_period_anchor_date": "2026-10-13",
+   "period_budget": 0
+  }
+ ]
+}

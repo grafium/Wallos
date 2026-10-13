@@ -88,7 +88,7 @@ export function shiftDate(anchor: string, cycle: CycleId, frequency: number, ste
 }
 
 /** Whole days from `a` to `b` (positive when b is later). */
-function diffDays(a: string, b: string): number {
+export function diffDays(a: string, b: string): number {
   return Math.round((parse(b).getTime() - parse(a).getTime()) / DAY_MS);
 }
 
@@ -134,9 +134,49 @@ export function renewDate(nextPayment: string, cycle: CycleId, frequency: number
 }
 
 /**
- * Every billing date of a subscription that falls inside the given calendar
- * month, projected both backwards and forwards from its next payment date.
+ * Every billing date of a subscription between two dates (inclusive),
+ * projected both backwards and forwards from its next payment date.
  */
+export function paymentDatesInRange(
+  nextPayment: string,
+  cycle: CycleId,
+  frequency: number,
+  rangeStart: string,
+  rangeEnd: string,
+): string[] {
+  if (cycle === Cycle.OneTime) {
+    return nextPayment >= rangeStart && nextPayment <= rangeEnd ? [nextPayment] : [];
+  }
+
+  // Find the first billing date on or after the range start, in either
+  // direction from the anchor.
+  let steps: number;
+  if (nextPayment >= rangeStart) {
+    const days = stepDays(cycle, frequency);
+    if (days !== null) {
+      steps = -Math.floor(diffDays(rangeStart, nextPayment) / days);
+    } else {
+      const a = parse(rangeStart);
+      const n = parse(nextPayment);
+      const monthsPerStep = cycle === Cycle.Monthly ? frequency : frequency * 12;
+      const monthGap = (n.getUTCFullYear() - a.getUTCFullYear()) * 12 + (n.getUTCMonth() - a.getUTCMonth());
+      steps = -Math.max(0, Math.floor(monthGap / monthsPerStep) - 1);
+      while (shiftDate(nextPayment, cycle, frequency, steps - 1) >= rangeStart) steps--;
+    }
+  } else {
+    steps = stepsUntil(nextPayment, cycle, frequency, rangeStart);
+  }
+
+  const dates: string[] = [];
+  for (let date = shiftDate(nextPayment, cycle, frequency, steps); date <= rangeEnd; ) {
+    dates.push(date);
+    steps++;
+    date = shiftDate(nextPayment, cycle, frequency, steps);
+  }
+  return dates;
+}
+
+/** Every billing date of a subscription inside the given calendar month. */
 export function paymentDatesInMonth(
   nextPayment: string,
   cycle: CycleId,
@@ -146,35 +186,18 @@ export function paymentDatesInMonth(
 ): string[] {
   const monthStart = format(new Date(Date.UTC(year, month - 1, 1)));
   const monthEnd = format(new Date(Date.UTC(year, month, 0)));
+  return paymentDatesInRange(nextPayment, cycle, frequency, monthStart, monthEnd);
+}
 
-  if (cycle === Cycle.OneTime) {
-    return nextPayment >= monthStart && nextPayment <= monthEnd ? [nextPayment] : [];
-  }
+/** The date `days` days after (or before, when negative) the given one. */
+export function addDays(value: string, days: number): string {
+  return format(new Date(parse(value).getTime() + days * DAY_MS));
+}
 
-  // Find the first billing date on or after the month start, in either
-  // direction from the anchor.
-  let steps: number;
-  if (nextPayment >= monthStart) {
-    const days = stepDays(cycle, frequency);
-    if (days !== null) {
-      steps = -Math.floor(diffDays(monthStart, nextPayment) / days);
-    } else {
-      const a = parse(monthStart);
-      const n = parse(nextPayment);
-      const monthsPerStep = cycle === Cycle.Monthly ? frequency : frequency * 12;
-      const monthGap = (n.getUTCFullYear() - a.getUTCFullYear()) * 12 + (n.getUTCMonth() - a.getUTCMonth());
-      steps = -Math.max(0, Math.floor(monthGap / monthsPerStep) - 1);
-      while (shiftDate(nextPayment, cycle, frequency, steps - 1) >= monthStart) steps--;
-    }
-  } else {
-    steps = stepsUntil(nextPayment, cycle, frequency, monthStart);
-  }
-
-  const dates: string[] = [];
-  for (let date = shiftDate(nextPayment, cycle, frequency, steps); date <= monthEnd; ) {
-    dates.push(date);
-    steps++;
-    date = shiftDate(nextPayment, cycle, frequency, steps);
-  }
-  return dates;
+/** Day of month clamped to the month's length: (2024, 2, 31) -> "2024-02-29". */
+export function clampedDate(year: number, month: number, day: number): string {
+  const totalMonths = year * 12 + (month - 1);
+  const y = Math.floor(totalMonths / 12);
+  const m = totalMonths - y * 12;
+  return format(new Date(Date.UTC(y, m, Math.min(Math.max(1, day), daysInMonth(y, m)))));
 }

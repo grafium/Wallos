@@ -4,6 +4,7 @@ import { purgeExpiredSessions, updateNextPayments } from "./cron/update-next-pay
 import type { AppBindings, Env } from "./env";
 import { requireAuth } from "./lib/auth";
 import { fail, ok } from "./lib/http";
+import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
 import { legacyRoutes } from "./routes/legacy";
 import { categories, currencies, household, paymentMethods } from "./routes/lookups";
@@ -45,6 +46,7 @@ api.route("/household", household.routes);
 api.route("/payment-methods", paymentMethods.routes);
 api.route("/currencies", currencies.routes);
 api.route("/stats", statsRoutes);
+api.route("/admin", adminRoutes);
 api.get("/cycles", async (c) => {
   const cycles = await c.env.DB.prepare("SELECT id, days, name FROM cycles ORDER BY id").all();
   return ok(c, "cycles", { cycles: cycles.results, notes: [] });
