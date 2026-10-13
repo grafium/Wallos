@@ -1,6 +1,6 @@
 # Átadás-átvétel — hol tart a projekt, hogyan lehet folytatni
 
-Állapot: **2026-10-13, 0.7.0 verzió, a 7. fázis kész** – a funkcióparitás elérve (éves költségtörténet, AI-javaslatok); hátra csak az élesítés van. Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
+Állapot: **2026-10-13, 0.7.0 verzió, a 7. fázis kész** (`90c1fe1`, CI zöld) – a funkcióparitás elérve (éves költségtörténet, AI-javaslatok); hátra csak az élesítés van. Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
 
 ## 1. Mi működik
 

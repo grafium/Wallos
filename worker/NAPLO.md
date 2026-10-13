@@ -13,7 +13,7 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | 6. 2FA (TOTP), OIDC SSO, belépés-korlátozás | `610c2d6` | 221 | ✅ |
 | Napló: 6. fázis commitja és CI-eredménye | `2c81926` | 221 | ✅ |
 | Mentés a 6. fázis után | `27d5a06` | 221 | ✅ |
-| 7. Éves költségtörténet, AI-javaslatok | lásd git log | 233 | — |
+| 7. Éves költségtörténet, AI-javaslatok | `90c1fe1` | 233 | ✅ |
 
 Minden munka 2026-10-13-án készült.
 
