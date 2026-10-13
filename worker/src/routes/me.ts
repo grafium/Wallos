@@ -10,7 +10,7 @@ import { WORKER_VERSION } from "../version";
 type Ctx = Context<AppBindings>;
 
 const PROFILE_COLUMNS = `id, username, email, firstname, lastname, main_currency, language, avatar, budget,
-  budget_period_type, budget_period_anchor_date, period_budget, totp_enabled, created_at`;
+  budget_period_type, budget_period_anchor_date, period_budget, totp_enabled, timezone, created_at`;
 
 async function profile(c: Ctx) {
   const user = c.get("user");

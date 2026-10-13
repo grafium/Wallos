@@ -2,7 +2,7 @@
 
 A Wallos előfizetés-követő Cloudflare Workers + D1 változata. A felmérést és az ütemtervet lásd: [ROADMAP.md](./ROADMAP.md).
 
-Jelenleg (2. fázis után) egy JSON API: fiókok, profil és beállítások, előfizetések, kategóriák, háztartás, fizetési módok, devizák, statisztika és költségvetés, admin, export, valamint a PHP Wallos `api/**/*.php` végpontjai kompatibilis formában. Egy meglévő PHP Wallos adatbázis importálható.
+Jelenleg (3. fázis után) egy JSON API: fiókok, profil és beállítások, előfizetések, kategóriák, háztartás, fizetési módok, devizák, statisztika és költségvetés, admin, export, értesítések 11 csatornán, e-mail (Resend), árfolyam-frissítés, valamint a PHP Wallos `api/**/*.php` végpontjai kompatibilis formában. Egy meglévő PHP Wallos adatbázis importálható.
 
 ## Fejlesztés
 
@@ -20,8 +20,13 @@ npm run typecheck
 npx wrangler login
 npx wrangler d1 create wallos   # database_id → wrangler.jsonc
 npm run db:migrate:remote
+npx wrangler secret put RESEND_API_KEY   # e-mail: a Resend API-kulcsa
 npm run deploy
 ```
+
+**E-mail (Resend).** A `wrangler.jsonc`-ben az `EMAIL_FROM` a feladó (pl. `Wallos <wallos@sajatdomain.hu>`); a domaint a Resendben hitelesíteni kell. Az `APP_URL` (vagy az admin `server_url` beállítása) adja az e-mailben küldött linkek alapját. Kulcs nélkül minden más működik, csak e-mail nem megy ki, és e-mail-megerősítés nem kapcsolható be.
+
+**Cron.** Óránként fut egy trigger: az emlékeztetők a felhasználó saját időzónája szerint 09:00-kor (fizetés) és 08:00-kor (lemondás) mennek ki, a napi feladatok UTC 01:00 (következő fizetési dátumok), 02:00 (árfolyamok) és 03:00 (takarítás) órakor futnak. Az ingyenes Workers csomag egy cron-futásban 50 kimenő hívást enged; sok felhasználónál vagy csatornánál a fizetős csomag kell.
 
 Az első regisztrált felhasználó lesz az admin. Utána a regisztráció zárva marad, amíg az admin meg nem nyitja (`PATCH /api/admin/settings` → `registrations_open`), vagy az admin maga vesz fel felhasználót (`POST /api/admin/users`).
 
@@ -39,7 +44,8 @@ npx wrangler d1 execute wallos --remote --file import.sql
 - A PHP által HTML-escapelve mentett szövegek (`&amp;` stb.) dekódolódnak; a jegyzetek érintetlenek maradnak.
 - Javítja a hibás adatokat: szöveges árfolyamok, üres/hibás dátumok, árva sorok, duplikált beállítások, kis-nagybetűre ütköző felhasználónevek, duplikált API-kulcsok, lógó helyettesítő előfizetések. Mindről figyelmeztetést ír.
 - `--replace`: az importálás előtt törli a meglévő felhasználókat és minden adatukat.
-- Még nem jön át (jelentésben látszik, melyik fázisban jön): értesítési beállítások, árfolyam-API kulcs, TOTP, OIDC, AI-beállítások, éves költségtörténet. A logó- és avatarfájlokat (`images/uploads/`) a 4. fázis viszi R2-be.
+- Az értesítési beállítások (mind a 11 csatorna), a push-feliratkozások a VAPID-kulcsokkal, az árfolyam-szolgáltató és -kulcs is átjön. A felhasználónkénti SMTP helyett az e-mail a példány Resend-feladóján megy; a „TLS-hiba figyelmen kívül hagyása” opció megszűnik (a Worker mindig ellenőrzi a tanúsítványt).
+- Még nem jön át (jelentésben látszik, melyik fázisban jön): TOTP, OIDC, AI-beállítások, éves költségtörténet. A logó- és avatarfájlokat (`images/uploads/`) a 4. fázis viszi R2-be.
 
 ## Hitelesítés
 
@@ -56,8 +62,13 @@ Minden válasz a Wallos-borítékot követi: `{ "success": bool, "title": string
 | POST | `/api/auth/register` | `username`, `email`, `password`, `main_currency` (ISO kód, alap: EUR), `language`, `firstname`, `lastname` |
 | POST | `/api/auth/login` | `username`, `password` → `token`, `expires_at` |
 | POST | `/api/auth/logout` | A session token érvénytelenítése |
+| POST | `/api/auth/password-reset` | `email` → visszaállító link e-mailben (1 óráig érvényes; ismeretlen címre is ugyanaz a válasz) |
+| POST | `/api/auth/password-reset/confirm` | `email`, `token`, `password`; minden session kijelentkezik |
+| POST | `/api/auth/verify-email` | `email`, `token` (ha az admin megköveteli az e-mail-megerősítést) |
+| POST | `/api/auth/verification-email` | `email` → új megerősítő link |
+| GET | `/verify-email`, `/reset-password` | Az e-mailes linkek céloldalai (egyszerű HTML) |
 | GET | `/api/me` | Profil és beállítások |
-| PATCH | `/api/me` | Profil: `firstname`, `lastname`, `email`, `language`, `main_currency`, `avatar` |
+| PATCH | `/api/me` | Profil: `firstname`, `lastname`, `email`, `language`, `main_currency`, `avatar`, `timezone` (IANA, pl. `Europe/Budapest`) |
 | GET / PATCH | `/api/me/settings` | Megjelenés: `dark_theme` (0/1/2), `color_theme`, `monthly_price`, `convert_currency`, `show_original_price`, `mobile_nav`, `show_subscription_progress`, `week_starts_sunday`, `upcoming_payments_limit` (3/5/10/20), `disabled_to_bottom`, `hide_disabled`, `remove_background`, `square_icons`, `main_color`+`accent_color`+`hover_color` (együtt), `css` |
 | PATCH | `/api/me/budget` | `budget` / `monthly_budget`, `period_budget`, `budget_period_type` (weekly, fortnightly, monthly), `budget_period_anchor_date` |
 | POST | `/api/me/password` | `current_password`, `new_password`; a többi session kijelentkezik (csak sessionből) |
@@ -75,13 +86,22 @@ Minden válasz a Wallos-borítékot követi: `{ "success": bool, "title": string
 | GET | `/api/stats/monthly-cost?month=&year=` | Egy naptári hónap tényleges költsége fődevizában |
 | GET | `/api/stats/summary` | Havi/éves átlag, kategóriánkénti bontás |
 | GET | `/api/stats/period-budget?reference_date=` | Az aktuális költségvetési időszak: mennyi kell még, marad-e keret |
+| GET | `/api/notifications` | Értesítési beállítások és csatornák (a titkos mezők `********`-ként) |
+| PATCH | `/api/notifications/settings` | `days` (hány nappal előtte), `period_summary_at_period_start` |
+| PUT / DELETE | `/api/notifications/channels/:channel` | `enabled` + a csatorna mezői; `********` megtartja a tárolt titkot. Csatornák: `email` (`other_emails`), `discord` (`webhook_url`, `bot_username`, `bot_avatar_url`), `gotify` (`url`, `token`), `telegram` (`bot_token`, `chat_id`), `pushover` (`user_key`, `token`), `ntfy` (`host`, `topic`, `headers`), `webhook` (`url`, `request_method`, `headers`, `payload`, `cancelation_payload`), `mattermost` (`webhook_url`, `bot_username`, `bot_icon_emoji`), `pushplus` (`token`), `serverchan` (`sendkey`), `push` |
+| POST | `/api/notifications/channels/:channel/test` | Tesztüzenet a tárolt vagy a törzsben megadott beállításokkal |
+| GET | `/api/notifications/preview?kind=payment\|cancellation&date=` | Mit küldene a cron az adott napon (küldés nélkül) |
+| GET | `/api/notifications/push/public-key` | VAPID publikus kulcs a böngészős feliratkozáshoz |
+| POST / DELETE | `/api/notifications/push/subscriptions` | Böngésző push-feliratkozása (`endpoint`, `keys.p256dh`, `keys.auth`) |
+| GET / PUT | `/api/exchange-rates` | Árfolyam-szolgáltató: `provider` 0 Fixer.io, 1 APILayer, 2 Frankfurter (kulcs nélkül, új fiókok alapértéke), `"manual"`; `api_key` |
+| POST | `/api/exchange-rates/refresh` | Árfolyamok frissítése most |
 | GET / PATCH | `/api/admin/settings` | Csak admin: `registrations_open`, `max_users`, `require_email_verification`, `server_url`, `update_notification` |
 | GET / POST | `/api/admin/users` | Csak admin: felhasználók listája / új felhasználó (zárt regisztráció mellett is) |
 | DELETE | `/api/admin/users/:id` | Csak admin: felhasználó és minden adatának törlése (az admin nem törölhető) |
 
 ### PHP Wallos kompatibilitás
 
-Ezek a régi útvonalak ugyanazt a választ adják, mint a PHP API: `/api/subscriptions/get_subscriptions.php`, `get_subscription.php`, `set_subscriptions.php` (`action=add|edit|delete`), `get_monthly_cost.php`, `/api/categories/get_categories.php`, `/api/currencies/get_currencies.php`, `/api/payment_methods/get_payment_methods.php`, `/api/household/get_household.php`, `/api/subscriptions/get_period_budget.php`, `/api/users/get_user.php`, `/api/users/set_budget.php`, `/api/settings/get_settings.php`, `/api/settings/set_settings.php`, `/api/admin/get_admin_settings.php`, `/api/admin/set_admin_settings.php`, `/api/status/version.php`.
+Ezek a régi útvonalak ugyanazt a választ adják, mint a PHP API: `/api/subscriptions/get_subscriptions.php`, `get_subscription.php`, `set_subscriptions.php` (`action=add|edit|delete`), `get_monthly_cost.php`, `/api/categories/get_categories.php`, `/api/currencies/get_currencies.php`, `/api/payment_methods/get_payment_methods.php`, `/api/household/get_household.php`, `/api/subscriptions/get_period_budget.php`, `/api/users/get_user.php`, `/api/users/set_budget.php`, `/api/settings/get_settings.php`, `/api/settings/set_settings.php`, `/api/admin/get_admin_settings.php`, `/api/admin/set_admin_settings.php`, `/api/notifications/get_notification_settings.php`, `/api/fixer/get_fixer.php`, `/api/fixer/set_fixer.php`, `/api/status/version.php`.
 
 ## Felépítés
 
@@ -91,7 +111,8 @@ src/index.ts         Hono app, útvonalak, cron belépési pont
 src/lib/             dátumaritmetika, árak, jelszó-hash, hitelesítés, validáció
 src/services/        előfizetés-, fiók- és statisztikalogika
 src/routes/          HTTP útvonalak (REST + PHP-kompatibilis)
-src/cron/            ütemezett feladatok
+src/cron/            óránkénti cron-elosztó és napi feladatok
+src/notifications/   csatornák és emlékeztetők
 src/import/          PHP Wallos adatbázis → D1 SQL átalakítás
 scripts/             importáló CLI, fixture-generátorok
 test/                Vitest (Workers runtime, helyi D1); fixtures/php-wallos.json valódi PHP-ból

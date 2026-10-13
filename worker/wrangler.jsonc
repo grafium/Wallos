@@ -17,12 +17,19 @@
     }
   ],
 
-  // Mirrors the Wallos crontab (all times UTC).
+  // One hourly trigger. Reminders go out at 09:00 (payments) and 08:00
+  // (cancellations) in each user's own timezone; the daily jobs run at 01:00
+  // (next payment dates) and 02:00 (exchange rates) UTC. See src/cron/.
   "triggers": {
-    "crons": ["0 1 * * *"]
+    "crons": ["0 * * * *"]
   },
 
   "vars": {
-    "SESSION_TTL_DAYS": "30"
+    "SESSION_TTL_DAYS": "30",
+    // Sender for all e-mail; the domain must be verified in Resend.
+    // The API key is a secret: npx wrangler secret put RESEND_API_KEY
+    "EMAIL_FROM": "Wallos <wallos@example.com>",
+    // Base URL for links in e-mails when the admin has not set server_url.
+    "APP_URL": ""
   }
 }

@@ -1,14 +1,17 @@
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
-import { purgeExpiredSessions, updateNextPayments } from "./cron/update-next-payment";
+import { runScheduled } from "./cron";
 import type { AppBindings, Env } from "./env";
 import { requireAuth } from "./lib/auth";
 import { fail, ok } from "./lib/http";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
+import { exchangeRateRoutes } from "./routes/exchange-rates";
 import { legacyRoutes } from "./routes/legacy";
 import { categories, currencies, household, paymentMethods } from "./routes/lookups";
 import { meRoutes } from "./routes/me";
+import { notificationRoutes } from "./routes/notifications";
+import { pageRoutes } from "./routes/pages";
 import { statsRoutes } from "./routes/stats";
 import { subscriptionRoutes } from "./routes/subscriptions";
 import { WALLOS_COMPAT_VERSION, WORKER_VERSION } from "./version";
@@ -32,6 +35,7 @@ app.get("/api/health", async (c) => {
 });
 
 app.route("/api/auth", authRoutes);
+app.route("/", pageRoutes);
 
 // Everything below requires a session token or an API key.
 const api = new Hono<AppBindings>();
@@ -47,6 +51,8 @@ api.route("/payment-methods", paymentMethods.routes);
 api.route("/currencies", currencies.routes);
 api.route("/stats", statsRoutes);
 api.route("/admin", adminRoutes);
+api.route("/notifications", notificationRoutes);
+api.route("/exchange-rates", exchangeRateRoutes);
 api.get("/cycles", async (c) => {
   const cycles = await c.env.DB.prepare("SELECT id, days, name FROM cycles ORDER BY id").all();
   return ok(c, "cycles", { cycles: cycles.results, notes: [] });
@@ -64,19 +70,7 @@ export default {
   fetch: app.fetch,
 
   async scheduled(controller, env, ctx) {
-    switch (controller.cron) {
-      case "0 1 * * *":
-        ctx.waitUntil(
-          (async () => {
-            const updated = await updateNextPayments(env.DB);
-            await purgeExpiredSessions(env.DB);
-            console.log(`updatenextpayment: ${updated} subscription(s) moved forward`);
-          })(),
-        );
-        break;
-      default:
-        console.warn(`No job for cron "${controller.cron}"`);
-    }
+    ctx.waitUntil(runScheduled(env, controller.scheduledTime));
   },
 } satisfies ExportedHandler<Env>;
 

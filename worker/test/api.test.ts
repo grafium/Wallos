@@ -342,7 +342,7 @@ describe("scheduled jobs", () => {
     const manual = await call("/api/subscriptions", { method: "POST", token: user.token, json: { name: "Manual", price: 1, auto_renew: 0, next_payment: "2020-01-01" } });
 
     const ctx = createExecutionContext();
-    await worker.scheduled(createScheduledController({ cron: "0 1 * * *", scheduledTime: Date.now() }), env, ctx);
+    await worker.scheduled(createScheduledController({ cron: "0 * * * *", scheduledTime: new Date().setUTCHours(1, 0, 0, 0) }), env, ctx);
     await waitOnExecutionContext(ctx);
 
     expect((await call(`/api/subscriptions/${overdue.body.subscriptionId}`, { token: user.token })).body.subscription.next_payment).toBe(today);
@@ -355,7 +355,7 @@ describe("scheduled jobs", () => {
     expect((await call("/api/me", { token: user.token })).status).toBe(401);
 
     const ctx = createExecutionContext();
-    await worker.scheduled(createScheduledController({ cron: "0 1 * * *", scheduledTime: Date.now() }), env, ctx);
+    await worker.scheduled(createScheduledController({ cron: "0 * * * *", scheduledTime: new Date().setUTCHours(1, 0, 0, 0) }), env, ctx);
     await waitOnExecutionContext(ctx);
     const left = await env.DB.prepare("SELECT COUNT(*) AS n FROM sessions WHERE user_id = ?").bind(user.userId).first<{ n: number }>();
     expect(left!.n).toBe(0);

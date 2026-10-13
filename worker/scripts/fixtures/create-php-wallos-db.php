@@ -57,7 +57,15 @@ $db->exec("UPDATE currencies SET rate = '' WHERE user_id = 1 AND code = 'GBP'");
 $db->exec("INSERT INTO settings (dark_theme, color_theme, user_id) VALUES (0, 'red', 1)");
 $db->exec("INSERT INTO settings (dark_theme, color_theme, user_id, disabled_to_bottom) VALUES (1, 'green', 1, 1)");
 $db->exec("INSERT INTO custom_colors (main_color, accent_color, hover_color, user_id) VALUES ('#112233', '#445566', '#778899', 1)");
-$db->exec("INSERT INTO email_notifications (enabled, smtp_address, user_id) VALUES (1, 'smtp.example.com', 1)");
+$db->exec("INSERT INTO email_notifications (enabled, smtp_address, other_emails, user_id) VALUES (1, 'smtp.example.com', 'cc@example.com', 1)");
+$db->exec("INSERT INTO notification_settings (days, user_id, period_summary_at_period_start) VALUES (3, 1, 0)");
+$db->exec("INSERT INTO discord_notifications (enabled, webhook_url, bot_username, bot_avatar_url, user_id) VALUES (1, 'https://discord.com/api/webhooks/1/abc', 'Wallos', '', 1)");
+$db->exec("INSERT INTO webhook_notifications (enabled, headers, url, request_method, payload, user_id, ignore_ssl, cancelation_payload) VALUES (1, '{\"X-Token\":\"secret\"}', 'https://hooks.example.com/wallos', 'POST', '{\"name\":\"{{subscription_name}}\"}', 1, 1, '')");
+$db->exec("INSERT INTO telegram_notifications (enabled, bot_token, chat_id, user_id) VALUES (0, '123:abc', '42', 2)");
+$db->exec("INSERT INTO push_notifications (enabled, user_id) VALUES (1, 1)");
+$db->exec("INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, user_agent, created_at) VALUES (1, 'https://fcm.googleapis.com/fcm/send/xyz', 'BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM', 'tBHItJI5svbpez7KI4CCXg', 'Firefox', '2026-01-01 10:00:00')");
+$db->exec("INSERT INTO fixer (api_key, provider, user_id) VALUES ('', 2, 1)");
+$db->exec("INSERT INTO last_exchange_update (date, user_id) VALUES ('2026-10-12', 1)");
 $db->exec("UPDATE admin SET registrations_open = 1, max_users = 10, smtp_address = 'smtp.example.com'");
 
 $usd = $db->querySingle("SELECT id FROM currencies WHERE user_id = 1 AND code = 'USD'");

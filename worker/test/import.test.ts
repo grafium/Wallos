@@ -50,7 +50,8 @@ describe("import report", () => {
     const { report } = result;
     expect(report.imported).toMatchObject({ user: 3, subscriptions: 8, household: 3, admin: 1, settings: 1, custom_colors: 1 });
     expect(report.skipped).toMatchObject({ settings: 2, subscriptions: 1 });
-    expect(report.notImported).toEqual({ email_notifications: { rows: 1, phase: "3" } });
+    expect(report.notImported).toEqual({});
+    expect(report.imported).toMatchObject({ notification_settings: 1, notification_channels: 5, push_subscriptions: 1, fixer: 1, last_exchange_update: 1 });
     expect(report.files).toEqual({ logos: ["1700000000-netflix.png"], avatars: ["images/uploads/logos/avatars/me.png"] });
     expect(report.warnings.join("\n")).toMatch(/renamed to "BOB_3"/);
     expect(report.warnings.join("\n")).toMatch(/replacement subscription 999/);
@@ -124,6 +125,23 @@ describe("imported data", () => {
     // PHP repeats the one-time "Course" every month (352.84 again); it is paid once.
     const june = await call("/api/stats/monthly-cost?month=6&year=2024", { token });
     expect(june.body.monthly_cost).toBe("51.99");
+  });
+
+  it("folds the per-channel PHP tables into notification channels", async () => {
+    const token = await login("admin", "admin-pass");
+    const res = await call("/api/notifications", { token });
+    expect(res.body.settings).toEqual({ days: 3, period_summary_at_period_start: 0 });
+    expect(res.body.channels.email).toEqual({ enabled: 1, config: { other_emails: "cc@example.com" } });
+    expect(res.body.channels.discord).toEqual({ enabled: 1, config: { webhook_url: "https://discord.com/api/webhooks/1/abc", bot_username: "Wallos" } });
+    expect(res.body.channels.webhook.config).toMatchObject({ url: "https://hooks.example.com/wallos", headers: "********", payload: '{"name":"{{subscription_name}}"}' });
+    expect(res.body.channels.push.enabled).toBe(1);
+
+    const rates = await call("/api/exchange-rates", { token });
+    expect(rates.body).toMatchObject({ provider: 2, provider_name: "Frankfurter", last_update: "2026-10-12" });
+
+    const bob = await login("bob", "bob-pass");
+    expect((await call("/api/exchange-rates", { token: bob })).body.provider).toBe("manual");
+    expect((await call("/api/notifications", { token: bob })).body.channels.telegram).toMatchObject({ enabled: 0, config: { chat_id: "42", bot_token: "********" } });
   });
 
   it("imports the admin settings", async () => {

@@ -48,36 +48,48 @@ export interface ImportOptions {
 
 /** Tables handled by later phases; listed so the report can say what was left behind. */
 const LATER_TABLES: Record<string, string> = {
-  notifications: "3",
-  notification_settings: "3",
-  email_notifications: "3",
-  discord_notifications: "3",
-  telegram_notifications: "3",
-  webhook_notifications: "3",
-  gotify_notifications: "3",
-  pushover_notifications: "3",
-  ntfy_notifications: "3",
-  mattermost_notifications: "3",
-  pushplus_notifications: "3",
-  serverchan_notifications: "3",
-  push_notifications: "3",
-  push_subscriptions: "3",
-  fixer: "3",
-  last_exchange_update: "3",
-  email_verification: "3",
-  password_resets: "3",
   uploaded_avatars: "4",
   google_search: "4",
   totp: "6",
   oauth_settings: "6",
-  login_tokens: "6",
   total_yearly_cost: "7",
   ai_settings: "7",
   ai_recommendations: "7",
 };
 
 /** Tables whose content is recreated rather than copied. */
-const IGNORED_TABLES = new Set(["migrations", "cycles", "frequencies", "last_update_next_payment_date", "sqlite_sequence"]);
+const IGNORED_TABLES = new Set([
+  "migrations",
+  "cycles",
+  "frequencies",
+  "last_update_next_payment_date",
+  "sqlite_sequence",
+  // Pre-multi-user global notification settings, superseded by the per-user tables.
+  "notifications",
+  // Short-lived tokens; they are not portable (the Worker stores hashes) and
+  // "remember me" cookies of the PHP instance mean nothing to the Worker.
+  "email_verification",
+  "password_resets",
+  "login_tokens",
+]);
+
+/** PHP notification tables -> channel name and the config fields to carry over. */
+const CHANNEL_TABLES: Record<string, { channel: string; fields: Record<string, string> }> = {
+  email_notifications: { channel: "email", fields: { other_emails: "other_emails" } },
+  discord_notifications: { channel: "discord", fields: { webhook_url: "webhook_url", bot_username: "bot_username", bot_avatar_url: "bot_avatar_url" } },
+  gotify_notifications: { channel: "gotify", fields: { url: "url", token: "token" } },
+  telegram_notifications: { channel: "telegram", fields: { bot_token: "bot_token", chat_id: "chat_id" } },
+  pushover_notifications: { channel: "pushover", fields: { user_key: "user_key", token: "token" } },
+  ntfy_notifications: { channel: "ntfy", fields: { host: "host", topic: "topic", headers: "headers" } },
+  webhook_notifications: {
+    channel: "webhook",
+    fields: { url: "url", request_method: "request_method", headers: "headers", payload: "payload", cancelation_payload: "cancelation_payload" },
+  },
+  mattermost_notifications: { channel: "mattermost", fields: { webhook_url: "webhook_url", bot_username: "bot_username", bot_icon_emoji: "bot_icon_emoji" } },
+  pushplus_notifications: { channel: "pushplus", fields: { token: "token" } },
+  serverchan_notifications: { channel: "serverchan", fields: { sendkey: "sendkey" } },
+  push_notifications: { channel: "push", fields: {} },
+};
 
 const HTML_ENTITIES: Record<string, string> = {
   "&amp;": "&",
@@ -254,12 +266,17 @@ export function buildImport(source: SourceTables, options: ImportOptions = {}): 
           server_url: str(admin.server_url),
           login_disabled: flag(admin.login_disabled),
           update_notification: flag(admin.update_notification),
+          // Keeping the instance's VAPID keys keeps the browsers' push subscriptions valid.
+          vapid_public_key: str(admin.vapid_public_key) ?? "",
+          vapid_private_key: str(admin.vapid_private_key) ?? "",
         },
         "INSERT OR REPLACE",
       ),
     );
     count("imported", "admin");
-    if (str(admin.smtp_address)) report.warnings.push("SMTP settings were not imported; e-mail delivery is configured anew in phase 3.");
+    if (str(admin.smtp_address)) {
+      report.warnings.push("The instance SMTP settings were not imported; the Worker sends e-mail through Resend (RESEND_API_KEY, EMAIL_FROM).");
+    }
     if (flag(admin.oidc_oauth_enabled)) report.warnings.push("OIDC login was enabled; it returns in phase 6.");
     if (flag(admin.login_disabled)) report.warnings.push('"Disable login" is set; the Worker does not support password-less access and ignores it.');
   }
@@ -465,6 +482,72 @@ export function buildImport(source: SourceTables, options: ImportOptions = {}): 
     } else {
       report.warnings.push(`Subscription ${id}: replacement subscription ${replacement} does not exist for the same user; dropped.`);
     }
+  }
+
+  // Notifications (phase 3) ------------------------------------------------------
+  for (const [userId, row] of lastPerUser("notification_settings")) {
+    statements.push(
+      insert("notification_settings", {
+        user_id: userId,
+        days: int(row.days) ?? 1,
+        period_summary_at_period_start: flag(row.period_summary_at_period_start),
+      }),
+    );
+    count("imported", "notification_settings");
+  }
+
+  let smtpUsers = 0;
+  let ignoredSsl = 0;
+  for (const [table, { channel, fields }] of Object.entries(CHANNEL_TABLES)) {
+    for (const [userId, row] of lastPerUser(table)) {
+      const config: Record<string, string> = {};
+      for (const [from, to] of Object.entries(fields)) {
+        const value = str(row[from]);
+        if (value !== null && value !== "") config[to] = value;
+      }
+      if (table === "email_notifications" && str(row.smtp_address)) smtpUsers++;
+      if (flag(row.ignore_ssl) && flag(row.enabled)) ignoredSsl++;
+      statements.push(insert("notification_channels", { user_id: userId, channel, enabled: flag(row.enabled), config: JSON.stringify(config) }));
+      count("imported", "notification_channels");
+    }
+  }
+  if (smtpUsers > 0) {
+    report.warnings.push(`${smtpUsers} user(s) had their own SMTP server for e-mail notifications; e-mail now goes out through the instance's Resend sender.`);
+  }
+  if (ignoredSsl > 0) {
+    report.warnings.push(`${ignoredSsl} channel(s) were set to ignore TLS errors; a Worker always verifies certificates, so self-signed servers need a valid certificate.`);
+  }
+
+  for (const row of rows("push_subscriptions")) {
+    const userId = ownerOf("push_subscriptions", row);
+    if (userId === null || !str(row.endpoint) || !str(row.p256dh) || !str(row.auth)) {
+      if (userId !== null) count("skipped", "push_subscriptions");
+      continue;
+    }
+    statements.push(
+      insert("push_subscriptions", {
+        user_id: userId,
+        endpoint: str(row.endpoint)!,
+        p256dh: str(row.p256dh)!,
+        auth: str(row.auth)!,
+        user_agent: str(row.user_agent) ?? "",
+        created_at: str(row.created_at) || null,
+      }).replace("INSERT INTO", "INSERT OR IGNORE INTO"),
+    );
+    count("imported", "push_subscriptions");
+  }
+
+  // Exchange rates: the provider row, and when rates were last fetched.
+  for (const [userId, row] of lastPerUser("fixer")) {
+    const provider = int(row.provider) ?? 0;
+    statements.push(insert("fixer", { user_id: userId, api_key: str(row.api_key) ?? "", provider: provider >= 0 && provider <= 2 ? provider : 0 }));
+    count("imported", "fixer");
+  }
+  for (const [userId, row] of lastPerUser("last_exchange_update")) {
+    const date = str(row.date)?.trim() ?? "";
+    if (!isValidDate(date)) continue;
+    statements.push(insert("last_exchange_update", { user_id: userId, date }));
+    count("imported", "last_exchange_update");
   }
 
   return { statements, report };

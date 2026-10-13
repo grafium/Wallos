@@ -30,7 +30,8 @@ export async function canRegister(db: D1Database): Promise<RegistrationCheck> {
 /**
  * Creates the account together with everything a Wallos account starts with -
  * a household member named after the user, the default categories, payment
- * methods and currencies, and settings - in one atomic batch. Rows refer to
+ * methods and currencies, settings, notification defaults and the
+ * Frankfurter exchange-rate provider - in one atomic batch. Rows refer to
  * the new user through its (unique) username, so no step depends on reading
  * an id back in between.
  */
@@ -76,6 +77,9 @@ export async function registerUser(db: D1Database, input: RegisterInput): Promis
       )
       .bind(input.username, input.main_currency),
     db.prepare(`INSERT INTO settings (user_id) VALUES (${userId})`).bind(input.username),
+    db.prepare(`INSERT INTO notification_settings (user_id) VALUES (${userId})`).bind(input.username),
+    // New accounts refresh their rates from Frankfurter (free, no key) until they choose otherwise.
+    db.prepare(`INSERT INTO fixer (user_id, provider, api_key) VALUES (${userId}, 2, '')`).bind(input.username),
   ]);
 
   const created = await db.prepare("SELECT id FROM user WHERE username = ?").bind(input.username).first<{ id: number }>();

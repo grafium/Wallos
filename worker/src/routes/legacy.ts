@@ -3,6 +3,8 @@ import type { AppBindings } from "../env";
 import { fail, ok, parseId, readBody } from "../lib/http";
 import { WALLOS_COMPAT_VERSION } from "../version";
 import { adminSettingsHandler, requireAdmin, updateAdminSettingsHandler } from "./admin";
+import { legacyGetFixer, legacySetFixer } from "./exchange-rates";
+import { legacyNotificationSettings } from "./notifications";
 import { categories, currencies, household, paymentMethods } from "./lookups";
 import { legacyUserHandler, settingsHandler, updateBudgetHandler, updateSettingsHandler } from "./me";
 import { monthlyCostHandler, periodBudgetHandler } from "./stats";
@@ -73,6 +75,10 @@ legacyRoutes.post("/settings/set_settings.php", async (c) => updateSettingsHandl
 
 legacyRoutes.on(["GET", "POST"], "/admin/get_admin_settings.php", requireAdmin, (c) => adminSettingsHandler(c));
 legacyRoutes.post("/admin/set_admin_settings.php", requireAdmin, async (c) => updateAdminSettingsHandler(c, await requestParams(c)));
+
+legacyRoutes.on(["GET", "POST"], "/notifications/get_notification_settings.php", (c) => legacyNotificationSettings(c));
+legacyRoutes.on(["GET", "POST"], "/fixer/get_fixer.php", (c) => legacyGetFixer(c));
+legacyRoutes.post("/fixer/set_fixer.php", async (c) => legacySetFixer(c, await requestParams(c)));
 
 legacyRoutes.on(["GET", "POST"], "/status/version.php", (c) =>
   ok(c, "version", { version: `v${WALLOS_COMPAT_VERSION}`, version_number: WALLOS_COMPAT_VERSION, notes: [] }),

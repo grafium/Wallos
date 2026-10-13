@@ -1,6 +1,6 @@
 {
   "name": "wallos-worker",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Wallos subscription tracker on Cloudflare Workers + D1",
   "type": "module",

@@ -145,6 +145,18 @@ export const profileSchema = z
     language: z.enum(LANGUAGES),
     main_currency: id,
     avatar: text(2048),
+    timezone: z
+      .string()
+      .trim()
+      .max(64)
+      .refine((tz) => {
+        try {
+          new Intl.DateTimeFormat("en-US", { timeZone: tz });
+          return true;
+        } catch {
+          return false;
+        }
+      }, "Expected an IANA timezone such as Europe/Budapest"),
   })
   .partial();
 

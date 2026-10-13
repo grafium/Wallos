@@ -787,6 +787,15 @@
    "name": "One-time"
   }
  ],
+ "discord_notifications": [
+  {
+   "enabled": 1,
+   "webhook_url": "https://discord.com/api/webhooks/1/abc",
+   "bot_username": "Wallos",
+   "bot_avatar_url": "",
+   "user_id": 1
+  }
+ ],
  "email_notifications": [
   {
    "enabled": 1,
@@ -797,7 +806,17 @@
    "from_email": "",
    "encryption": "tls",
    "user_id": 1,
-   "other_emails": ""
+   "other_emails": "cc@example.com"
+  }
+ ],
+ "fixer": [
+  {
+   "api_key": "",
+   "provider": 2,
+   "user_id": 1,
+   "usage_used": null,
+   "usage_limit": null,
+   "usage_updated_at": null
   }
  ],
  "frequencies": [
@@ -946,296 +965,309 @@
    "user_id": 2
   }
  ],
+ "last_exchange_update": [
+  {
+   "date": "2026-10-12",
+   "user_id": 1
+  }
+ ],
  "migrations": [
   {
    "id": 1,
    "migration": "migrations/000001.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 2,
    "migration": "migrations/000002.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 3,
    "migration": "migrations/000003.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 4,
    "migration": "migrations/000004.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 5,
    "migration": "migrations/000005.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 6,
    "migration": "migrations/000006.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 7,
    "migration": "migrations/000007.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 8,
    "migration": "migrations/000008.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 9,
    "migration": "migrations/000009.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 10,
    "migration": "migrations/000010.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 11,
    "migration": "migrations/000011.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 12,
    "migration": "migrations/000012.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 13,
    "migration": "migrations/000013.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 14,
    "migration": "migrations/000014.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 15,
    "migration": "migrations/000015.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 16,
    "migration": "migrations/000016.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 17,
    "migration": "migrations/000017.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 18,
    "migration": "migrations/000018.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 19,
    "migration": "migrations/000019.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 20,
    "migration": "migrations/000020.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 21,
    "migration": "migrations/000021.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 22,
    "migration": "migrations/000022.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 23,
    "migration": "migrations/000023.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 24,
    "migration": "migrations/000024.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 25,
    "migration": "migrations/000025.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 26,
    "migration": "migrations/000026.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 27,
    "migration": "migrations/000027.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 28,
    "migration": "migrations/000028.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 29,
    "migration": "migrations/000029.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 30,
    "migration": "migrations/000030.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 31,
    "migration": "migrations/000031.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 32,
    "migration": "migrations/000032.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 33,
    "migration": "migrations/000033.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 34,
    "migration": "migrations/000034.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 35,
    "migration": "migrations/000035.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 36,
    "migration": "migrations/000036.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 37,
    "migration": "migrations/000037.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 38,
    "migration": "migrations/000038.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 39,
    "migration": "migrations/000039.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 40,
    "migration": "migrations/000040.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 41,
    "migration": "migrations/000041.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 42,
    "migration": "migrations/000042.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 43,
    "migration": "migrations/000043.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 44,
    "migration": "migrations/000044.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 45,
    "migration": "migrations/000045.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 46,
    "migration": "migrations/000046.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 47,
    "migration": "migrations/000047.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 48,
    "migration": "migrations/000048.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 49,
    "migration": "migrations/000050.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 50,
    "migration": "migrations/000051.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 51,
    "migration": "migrations/000052.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 52,
    "migration": "migrations/000053.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 53,
    "migration": "migrations/000054.php",
-   "migrated_at": "2026-10-13 19:39:52"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 54,
    "migration": "migrations/000055.php",
-   "migrated_at": "2026-10-13 19:39:53"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 55,
    "migration": "migrations/000056.php",
-   "migrated_at": "2026-10-13 19:39:53"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 56,
    "migration": "migrations/000057.php",
-   "migrated_at": "2026-10-13 19:39:53"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 57,
    "migration": "migrations/000058.php",
-   "migrated_at": "2026-10-13 19:39:53"
+   "migrated_at": "2026-10-13 20:00:12"
   },
   {
    "id": 58,
    "migration": "migrations/000059.php",
-   "migrated_at": "2026-10-13 19:39:53"
+   "migrated_at": "2026-10-13 20:00:12"
+  }
+ ],
+ "notification_settings": [
+  {
+   "days": 3,
+   "user_id": 1,
+   "period_summary_at_period_start": 0
   }
  ],
  "payment_methods": [
@@ -1736,6 +1768,23 @@
    "user_id": 2
   }
  ],
+ "push_notifications": [
+  {
+   "enabled": 1,
+   "user_id": 1
+  }
+ ],
+ "push_subscriptions": [
+  {
+   "id": 1,
+   "user_id": 1,
+   "endpoint": "https://fcm.googleapis.com/fcm/send/xyz",
+   "p256dh": "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
+   "auth": "tBHItJI5svbpez7KI4CCXg",
+   "user_agent": "Firefox",
+   "created_at": "2026-01-01 10:00:00"
+  }
+ ],
  "settings": [
   {
    "dark_theme": 0,
@@ -2010,12 +2059,20 @@
    "logo_variant": null
   }
  ],
+ "telegram_notifications": [
+  {
+   "enabled": 0,
+   "bot_token": "123:abc",
+   "chat_id": "42",
+   "user_id": 2
+  }
+ ],
  "user": [
   {
    "id": 1,
    "username": "admin",
    "email": "admin@example.com",
-   "password": "$2y$10$t0LeGr.kzRUG2MdNu2K0.OqZuAgpmxxwTjMqTvq.5KKFv1fNxjr/6",
+   "password": "$2y$10$fPnmCwhCA/s1iFZY3pG0Huwfdx5r35qshmRjWu2VpjC/W.SPtnX9.",
    "main_currency": 1,
    "avatar": "images/uploads/logos/avatars/me.png",
    "language": "en",
@@ -2033,7 +2090,7 @@
    "id": 2,
    "username": "bob",
    "email": "bob@example.com",
-   "password": "$2y$10$gAqMYe9uig5rxGp8XNGnuuugvpqAPSPgBaDqOQfPH5beRIjD9WddC",
+   "password": "$2y$10$yaEBx3GPTtPQpGN.QHDfju4TXvBxsspkCyzBQOxvH0Y9004tjaPPu",
    "main_currency": 41,
    "avatar": null,
    "language": "hu",
@@ -2051,7 +2108,7 @@
    "id": 3,
    "username": "BOB",
    "email": "bob2@example.com",
-   "password": "$2y$10$DbJgbNYqBjVw7618DkVuH.SdGbN.LKpXRD/Hl3MB0XyEPdr/bqcCu",
+   "password": "$2y$10$O3T6iVB/C7Woy2XnJLvfQOBE84DD0ehF0WV467bud2TIy7scW26fu",
    "main_currency": 0,
    "avatar": null,
    "language": "en",
@@ -2064,6 +2121,18 @@
    "budget_period_type": "monthly",
    "budget_period_anchor_date": "2026-10-13",
    "period_budget": 0
+  }
+ ],
+ "webhook_notifications": [
+  {
+   "enabled": 1,
+   "headers": "{\"X-Token\":\"secret\"}",
+   "url": "https://hooks.example.com/wallos",
+   "request_method": "POST",
+   "payload": "{\"name\":\"{{subscription_name}}\"}",
+   "user_id": 1,
+   "ignore_ssl": 1,
+   "cancelation_payload": ""
   }
  ]
 }

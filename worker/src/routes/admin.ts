@@ -4,6 +4,7 @@ import type { AppBindings } from "../env";
 import { ADMIN_USER_ID } from "../env";
 import { fail, ok, parseId, readBody, validationFailed } from "../lib/http";
 import { flag, registerSchema } from "../lib/schemas";
+import { emailConfigured } from "../lib/email";
 import { registerUser } from "../services/accounts";
 
 /*
@@ -49,6 +50,11 @@ export async function updateAdminSettingsHandler(c: Ctx, body: Record<string, un
   if (!parsed.success) return validationFailed(c, parsed.error);
   const entries = Object.entries(parsed.data).filter(([, value]) => value !== undefined);
   if (entries.length === 0) return fail(c, 400, "Missing parameters", `Provide at least one of: ${ADMIN_COLUMNS.join(", ")}.`);
+  if (parsed.data.require_email_verification === 1 && !emailConfigured(c.env)) {
+    return fail(c, 400, "E-mail not configured", "Set RESEND_API_KEY and EMAIL_FROM before requiring e-mail verification.", {
+      fields: ["require_email_verification"],
+    });
+  }
 
   await c.env.DB.prepare(`UPDATE admin SET ${entries.map(([key]) => `${key} = ?`).join(", ")} WHERE id = 1`)
     .bind(...entries.map(([, value]) => value))

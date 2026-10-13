@@ -14,7 +14,7 @@ import { fail } from "./http";
       query or form parameter.
 */
 
-const USER_FIELDS = ["id", "username", "email", "main_currency", "language", "budget"];
+const USER_FIELDS = ["id", "username", "email", "main_currency", "language", "budget", "timezone"];
 const USER_COLUMNS = USER_FIELDS.join(", ");
 const USER_COLUMNS_U = USER_FIELDS.map((f) => `u.${f}`).join(", ");
 
