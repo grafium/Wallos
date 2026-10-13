@@ -4,5 +4,5 @@
     "lib": ["es2023"],
     "types": ["node"]
   },
-  "include": ["./**/*.ts", "../src/import/**/*.ts", "../src/lib/dates.ts"]
+  "include": ["./**/*.ts", "../src/import/**/*.ts", "../src/lib/dates.ts", "../src/lib/sha256-sync.ts"]
 }

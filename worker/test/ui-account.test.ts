@@ -216,10 +216,12 @@ describe("profile page and endpoints/user", () => {
     expect((await user(browser))!.api_key).toBe(res.json!.apiKey);
   });
 
-  it("says that two-factor authentication is not available", async () => {
+  it("hands out a two-factor secret and its QR code URL (the flow is in auth.test.ts)", async () => {
     const browser = await browserSession("totp");
-    expect((await endpoint(browser, "/endpoints/user/enable_totp.php", { json: { action: "generate" } })).json).toMatchObject({ success: false, message: expect.stringContaining("not available") });
-    expect((await endpoint(browser, "/endpoints/user/disable_totp.php", { json: { totpCode: "123456" } })).json).toMatchObject({ success: false });
+    const generated = (await endpoint(browser, "/endpoints/user/enable_totp.php", { json: { action: "generate" } })).json!;
+    expect(generated).toMatchObject({ success: true, secret: expect.stringMatching(/^[A-Z2-7]{32}$/) });
+    expect(generated.qrCodeUrl).toBe(`otpauth://totp/Wallos:${browser.username}?secret=${generated.secret}&issuer=Wallos`);
+    expect((await endpoint(browser, "/endpoints/user/disable_totp.php", { json: { totpCode: "123456" } })).json).toMatchObject({ success: false, reload: true });
   });
 
   it("requires the session and the CSRF token", async () => {
@@ -323,8 +325,6 @@ describe("admin page and endpoints/admin", () => {
     );
     expect(((await noMail.json()) as Record<string, unknown>).success).toBe(false);
     expect((await endpoint(admin, "/endpoints/admin/savesecuritysettings.php", { json: { local_webhook_notifications_allowlist: "" } })).json).toMatchObject({ success: false });
-    expect((await endpoint(admin, "/endpoints/admin/enableoidc.php", { json: { oidcEnabled: 1 } })).json).toMatchObject({ success: false, message: expect.stringContaining("OIDC") });
-    expect((await endpoint(admin, "/endpoints/admin/saveoidcsettings.php", { json: {} })).json).toMatchObject({ success: false });
     expect((await endpoint(admin, "/endpoints/admin/deleteuser.php", { json: { userId: 2 }, csrf: false })).json).toEqual({ success: false, message: "Invalid CSRF token" });
   });
 });

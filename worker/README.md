@@ -2,7 +2,7 @@
 
 A Wallos előfizetés-követő Cloudflare Workers + D1 változata. A felmérést és az ütemtervet lásd: [ROADMAP.md](./ROADMAP.md); munkanapló: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); átadás-átvétel és folytatás: [ATVETEL.md](./ATVETEL.md).
 
-Jelenleg (5. fázis után) a PHP Wallos webes felülete ugyanazokon a címeken (`index.php`, `subscriptions.php`, `stats.php`, `settings.php` …), és mögötte egy JSON API: fiókok, profil és beállítások, előfizetések, kategóriák, háztartás, fizetési módok, devizák, statisztika és költségvetés, admin, export, értesítések 11 csatornán, e-mail (Resend), árfolyam-frissítés, logók/ikonok/avatarok R2-ben és logókereső, valamint a PHP Wallos `api/**/*.php` végpontjai kompatibilis formában. Egy meglévő PHP Wallos adatbázis importálható.
+Jelenleg (6. fázis után) a PHP Wallos webes felülete, kétlépcsős azonosítással (TOTP) és OIDC egyszeri bejelentkezéssel, ugyanazokon a címeken (`index.php`, `subscriptions.php`, `stats.php`, `settings.php` …), és mögötte egy JSON API: fiókok, profil és beállítások, előfizetések, kategóriák, háztartás, fizetési módok, devizák, statisztika és költségvetés, admin, export, értesítések 11 csatornán, e-mail (Resend), árfolyam-frissítés, logók/ikonok/avatarok R2-ben és logókereső, valamint a PHP Wallos `api/**/*.php` végpontjai kompatibilis formában. Egy meglévő PHP Wallos adatbázis importálható.
 
 ## Fejlesztés
 
@@ -31,7 +31,7 @@ npm run deploy
 
 **Cron.** Óránként fut egy trigger: az emlékeztetők a felhasználó saját időzónája szerint 09:00-kor (fizetés) és 08:00-kor (lemondás) mennek ki, a napi feladatok UTC 01:00 (következő fizetési dátumok), 02:00 (árfolyamok) és 03:00 (takarítás) órakor futnak. Az ingyenes Workers csomag egy cron-futásban 50 kimenő hívást enged; sok felhasználónál vagy csatornánál a fizetős csomag kell.
 
-**Webes felület.** A `npm run build:assets` (a `dev`, `test` és `deploy` előtt automatikusan fut) a repó gyökeréből a `styles/`, `scripts/`, `images/` és `libs/` könyvtárat a `public/`-ba másolja; ezeket a Workers Static Assets szolgálja ki, az oldalakat a Worker rendereli. A böngésző HttpOnly `wallos_session` cookie-val és CSRF-tokennel dolgozik. Nem elérhető még: TOTP, OIDC, AI-javaslatok (a gombok jelzik); a mentés JSON-export zip-ben, a visszaállítás az importálóval megy.
+**Webes felület.** A `npm run build:assets` (a `dev`, `test` és `deploy` előtt automatikusan fut) a repó gyökeréből a `styles/`, `scripts/`, `images/` és `libs/` könyvtárat a `public/`-ba másolja; ezeket a Workers Static Assets szolgálja ki, az oldalakat a Worker rendereli. A böngésző HttpOnly `wallos_session` cookie-val és CSRF-tokennel dolgozik. Nem elérhető még: AI-javaslatok (a gombok jelzik); a mentés JSON-export zip-ben, a visszaállítás az importálóval megy.
 
 Az első regisztrált felhasználó lesz az admin (a felületen a `registration.php` űrlapon, vagy `POST /api/auth/register`). Utána a regisztráció zárva marad, amíg az admin meg nem nyitja (`PATCH /api/admin/settings` → `registrations_open`), vagy az admin maga vesz fel felhasználót (`POST /api/admin/users`).
 
@@ -54,12 +54,15 @@ npx wrangler d1 execute wallos --remote --file import.sql
   ```sh
   node scripts/upload-files.ts /path/to/wallos      # a PHP telepítés könyvtára; --dry-run: csak listáz
   ```
-- Még nem jön át (jelentésben látszik, melyik fázisban jön): TOTP, OIDC, AI-beállítások, éves költségtörténet.
+- A kétlépcsős azonosítás (a mentőkódok csak hash-ként kerülnek át, a régiek továbbra is működnek), az OIDC-beállítások és a fiókok OIDC-azonosítói is átjönnek. Még nem jön át (a jelentés mutatja): AI-beállítások, éves költségtörténet.
 
 ## Hitelesítés
 
 - `POST /api/auth/login` → `token`; küldd így: `Authorization: Bearer <token>`.
 - Az API-kulcs (`GET /api/me/api-key`, csak sessionből) ugyanígy Bearer tokenként, `X-API-Key` fejlécben, vagy a régi módon `api_key` / `apiKey` paraméterként is használható.
+- **Kétlépcsős azonosítás (TOTP):** a profil oldalon kapcsolható be (QR-kód, 10 egyszer használatos mentőkód), vagy a `/api/me/two-factor` végpontokon. Bekapcsolva a webes belépés a jelszó után a `totp.php` oldalon kéri a kódot; az API-belépésnél a kódot `totp_code` mezőben kell a jelszóval együtt küldeni (nélküle `401` + `two_factor_required: true`). Öt hibás kód után 30 másodpercig zárolt, egy kód csak egyszer használható. Az API-kulcsos hozzáférést (régi integrációk) a 2FA nem érinti, ahogy a PHP-ban sem.
+- **Belépés-korlátozás:** egy címről ugyanarra a felhasználónévre 10, összesen 30 sikertelen belépés után 15 percig nincs több próbálkozás (`429`); jelszó-visszaállítást egy cím 15 percenként legfeljebb 10-szer kérhet. Opcionálisan Workers Rate Limiting is beköthető (`LOGIN_RATE_LIMITER`, lásd `wrangler.jsonc`).
+- **OIDC egyszeri bejelentkezés:** az admin oldalon állítható be (szolgáltató neve, client ID/secret, auth/token/userinfo URL, redirect URL = a Wallos címe, pl. `https://wallos.example.com/`). A belépési oldalon megjelenik a „Login with …” gomb. A fiókot a szolgáltató azonosítója, ennek hiányában a *megerősített* e-mail-cím köti össze; kérésre automatikusan új fiók is létrejöhet. „Disable password login” bekapcsolásával csak SSO-val lehet belépni (űrlap, API és regisztráció is tiltva). Minden mező Worker-változóval is rögzíthető a PHP-s nevekkel (`OIDC_ENABLED`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` titokként, `OIDC_ISSUER` a discoveryhez, `OIDC_DISABLE_PASSWORD_LOGIN` …); ezek az admin oldalon csak olvashatók. **Ha SSO-only módban elromlik a szolgáltató**, a jelszavas belépés visszakapcsolható: `npx wrangler d1 execute wallos --remote --command "UPDATE oauth_settings SET password_login_disabled = 0"`, vagy `OIDC_DISABLE_PASSWORD_LOGIN=false` változóval.
 
 ## API
 
@@ -69,7 +72,7 @@ Minden válasz a Wallos-borítékot követi: `{ "success": bool, "title": string
 |---|---|---|
 | GET | `/api/health` | Állapot (nyilvános) |
 | POST | `/api/auth/register` | `username`, `email`, `password`, `main_currency` (ISO kód, alap: EUR), `language`, `firstname`, `lastname` |
-| POST | `/api/auth/login` | `username`, `password` → `token`, `expires_at` |
+| POST | `/api/auth/login` | `username`, `password` (+ `totp_code`, ha a fióknál be van kapcsolva a 2FA) → `token`, `expires_at` |
 | POST | `/api/auth/logout` | A session token érvénytelenítése |
 | POST | `/api/auth/password-reset` | `email` → visszaállító link e-mailben (1 óráig érvényes; ismeretlen címre is ugyanaz a válasz) |
 | POST | `/api/auth/password-reset/confirm` | `email`, `token`, `password`; minden session kijelentkezik |
@@ -83,6 +86,10 @@ Minden válasz a Wallos-borítékot követi: `{ "success": bool, "title": string
 | POST | `/api/me/password` | `current_password`, `new_password`; a többi session kijelentkezik (csak sessionből) |
 | GET | `/api/me/export` | A felhasználó összes adata JSON-ként (jelszó és API-kulcs nélkül) |
 | GET / POST | `/api/me/api-key` | API-kulcs lekérése / cseréje (csak sessionből) |
+| GET | `/api/me/two-factor` | 2FA állapota: `enabled`, `backup_codes_remaining` |
+| POST | `/api/me/two-factor/setup` | Új titok és `otpauth_url` a hitelesítő apphoz (még nem kapcsol be; csak sessionből) |
+| POST | `/api/me/two-factor/enable` | `secret`, `code` → bekapcsol, `backup_codes` (csak sessionből) |
+| POST | `/api/me/two-factor/disable` | `code` (TOTP vagy mentőkód) → kikapcsol (csak sessionből) |
 | GET | `/api/subscriptions` | Szűrők: `member`, `category`, `payment` (vesszővel elválasztott id-k), `state` (0 aktív, 1 inaktív), `sort` (`next_payment`, `name`, `alphanumeric`, `price`, `id`, `payer_user_id`, `category_id`, `payment_method_id`, `inactive`), `disabled_to_bottom=true`, `convert_currency=true` |
 | POST | `/api/subscriptions` | Kötelező: `name`, `price`. Opcionális: `currency_id`, `next_payment`, `start_date`, `cycle` (1 nap, 2 hét, 3 hónap, 4 év, 5 egyszeri), `frequency` (1–31), `auto_renew`, `payment_method_id`, `payer_user_id`, `category_id`, `notes`, `url`, `notify`, `notify_days_before` (-1 = alapértelmezett), `inactive`, `cancellation_date`, `replacement_subscription_id` |
 | GET / PATCH / DELETE | `/api/subscriptions/:id` | Lekérés / részleges módosítás / törlés |
@@ -110,14 +117,15 @@ Minden válasz a Wallos-borítékot követi: `{ "success": bool, "title": string
 | GET | `/images/uploads/logos/:name`, `/images/uploads/logos/avatars/:name` | A tárolt képek (nyilvános, a PHP-val azonos címen) |
 | GET / PUT | `/api/exchange-rates` | Árfolyam-szolgáltató: `provider` 0 Fixer.io, 1 APILayer, 2 Frankfurter (kulcs nélkül, új fiókok alapértéke), `"manual"`; `api_key` |
 | POST | `/api/exchange-rates/refresh` | Árfolyamok frissítése most |
-| GET / PATCH | `/api/admin/settings` | Csak admin: `registrations_open`, `max_users`, `require_email_verification`, `server_url`, `update_notification` |
+| GET / PATCH | `/api/admin/settings` | Csak admin: `registrations_open`, `max_users`, `require_email_verification`, `server_url`, `update_notification`, `oidc_oauth_enabled` |
 | GET / POST | `/api/admin/users` | Csak admin: felhasználók listája / új felhasználó (zárt regisztráció mellett is) |
 | DELETE | `/api/admin/users/:id` | Csak admin: felhasználó és minden adatának (képeinek is) törlése (az admin nem törölhető) |
 | POST | `/api/admin/files/cleanup` | Csak admin: a sehol nem használt logófájlok törlése |
+| GET / PATCH | `/api/admin/oidc` | Csak admin: OIDC-beállítások (a client secret `********`-ként jön; visszaküldve megtartja), `oidc_enabled`, a változókkal rögzített mezők (`managed_fields`) és megjegyzések |
 
 ### PHP Wallos kompatibilitás
 
-Ezek a régi útvonalak ugyanazt a választ adják, mint a PHP API: `/api/subscriptions/get_subscriptions.php`, `get_subscription.php`, `set_subscriptions.php` (`action=add|edit|delete`), `get_monthly_cost.php`, `/api/categories/get_categories.php`, `/api/currencies/get_currencies.php`, `/api/payment_methods/get_payment_methods.php`, `/api/household/get_household.php`, `/api/subscriptions/get_period_budget.php`, `/api/users/get_user.php`, `/api/users/set_budget.php`, `/api/settings/get_settings.php`, `/api/settings/set_settings.php`, `/api/admin/get_admin_settings.php`, `/api/admin/set_admin_settings.php`, `/api/notifications/get_notification_settings.php`, `/api/fixer/get_fixer.php`, `/api/fixer/set_fixer.php`, `/api/status/version.php`, `/api/subscriptions/get_ical_feed.php` (iCal).
+Ezek a régi útvonalak ugyanazt a választ adják, mint a PHP API: `/api/subscriptions/get_subscriptions.php`, `get_subscription.php`, `set_subscriptions.php` (`action=add|edit|delete`), `get_monthly_cost.php`, `/api/categories/get_categories.php`, `/api/currencies/get_currencies.php`, `/api/payment_methods/get_payment_methods.php`, `/api/household/get_household.php`, `/api/subscriptions/get_period_budget.php`, `/api/users/get_user.php`, `/api/users/set_budget.php`, `/api/settings/get_settings.php`, `/api/settings/set_settings.php`, `/api/admin/get_admin_settings.php`, `/api/admin/set_admin_settings.php`, `/api/admin/get_oidc_settings.php` (a client secret maszkolva), `/api/admin/set_oidc_settings.php`, `/api/admin/set_disable_password_login.php`, `/api/notifications/get_notification_settings.php`, `/api/fixer/get_fixer.php`, `/api/fixer/set_fixer.php`, `/api/status/version.php`, `/api/subscriptions/get_ical_feed.php` (iCal).
 
 ## Felépítés
 

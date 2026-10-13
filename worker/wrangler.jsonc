@@ -29,6 +29,10 @@
   // the account). Without it images are stored as uploaded.
   // "images": { "binding": "IMAGES" },
 
+  // Optional: an extra per-address limit on login attempts with Workers Rate
+  // Limiting, on top of the D1 counters that are always on.
+  // "ratelimits": [{ "name": "LOGIN_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } }],
+
   // One hourly trigger. Reminders go out at 09:00 (payments) and 08:00
   // (cancellations) in each user's own timezone; the daily jobs run at 01:00
   // (next payment dates) and 02:00 (exchange rates) UTC. See src/cron/.
@@ -43,5 +47,10 @@
     "EMAIL_FROM": "Wallos <wallos@example.com>",
     // Base URL for links in e-mails when the admin has not set server_url.
     "APP_URL": ""
+    // OIDC can be configured on the admin page, or pinned here with PHP Wallos'
+    // variable names (the client secret as a secret: wrangler secret put OIDC_CLIENT_SECRET):
+    // "OIDC_ENABLED": "true", "OIDC_PROVIDER_NAME": "Authentik", "OIDC_CLIENT_ID": "...",
+    // "OIDC_ISSUER": "https://auth.example.com/application/o/wallos/",
+    // "OIDC_REDIRECT_URL": "https://wallos.example.com/", "OIDC_DISABLE_PASSWORD_LOGIN": "false"
   }
 }

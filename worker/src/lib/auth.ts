@@ -95,11 +95,11 @@ export const requireAuth: MiddlewareHandler<AppBindings> = async (c, next) => {
   return fail(c, 401, "Invalid API key", "The API key or session token is not valid.");
 };
 
-export async function createSession(env: AppBindings["Bindings"], userId: number, token: string, userAgent: string) {
+export async function createSession(env: AppBindings["Bindings"], userId: number, token: string, userAgent: string, options: { viaOidc?: boolean } = {}) {
   const ttlDays = Number(env.SESSION_TTL_DAYS ?? "30") || 30;
   const expiresAt = new Date(Date.now() + ttlDays * 86_400_000).toISOString();
-  await env.DB.prepare("INSERT INTO sessions (id, user_id, expires_at, user_agent) VALUES (?, ?, ?, ?)")
-    .bind(await sha256Hex(token), userId, expiresAt, userAgent.slice(0, 255))
+  await env.DB.prepare("INSERT INTO sessions (id, user_id, expires_at, user_agent, via_oidc) VALUES (?, ?, ?, ?, ?)")
+    .bind(await sha256Hex(token), userId, expiresAt, userAgent.slice(0, 255), options.viaOidc ? 1 : 0)
     .run();
   return expiresAt;
 }

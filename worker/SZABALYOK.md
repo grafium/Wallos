@@ -35,7 +35,7 @@ Ezek a szabályok a projekt eddigi menetéből és a megrendelő kéréseiből �
 2. **Régi API:** az `/api/**/*.php` útvonalak ugyanazt a JSON-t adják, mint a PHP, és az `api_key` paraméterrel működnek. A legacy útvonalak a REST útvonalak **előtt** vannak mountolva.
 3. **Webes felület:** az oldalak a PHP-val azonos URL-en (`index.php` …) és azonos HTML-szerkezettel (id-k, osztályok, `onclick`-ek) készülnek, mert a PHP JS/CSS-fájljai **változatlanul** futnak rajtuk. A JS-t és a CSS-t nem írjuk át; a `build-assets` a repó gyökeréből másolja őket. Az `endpoints/**/*.php` válaszformátuma (`{success, message, …}`) pontosan a PHP-é.
 4. **R2 kulcsok** = a PHP fájlútvonalai (`images/uploads/logos/…`, `…/avatars/…`). A subscriptions/payment_methods tábla a fájlnevet, a user tábla a teljes útvonalat tárolja, ahogy a PHP.
-5. Ami a Workeren nem elérhető (TOTP, OIDC, AI, jelszó nélküli mód, SMTP, helyi webhook-engedélylista), az a felületen megjelenik, de egyértelmű `{success:false, message}` üzenetet ad. Csendben nem hibázhat.
+5. Ami a Workeren nem elérhető (AI, jelszó nélküli mód, SMTP, helyi webhook-engedélylista), az a felületen megjelenik, de egyértelmű `{success:false, message}` üzenetet ad. Csendben nem hibázhat.
 6. Ha a PHP-tól szándékosan eltérünk (hibajavítás, platformkorlát), azt a ROADMAP kockázatlistájában dokumentáljuk, és teszttel rögzítjük.
 
 ## 4. Biztonság
@@ -46,6 +46,9 @@ Ezek a szabályok a projekt eddigi menetéből és a megrendelő kéréseiből �
 4. Titkos mezők (tokenek, jelszavak, API-kulcsok) maszkolva jönnek vissza az API-ból. Titok csak `wrangler secret`-ben lehet, a `wrangler.jsonc`-ben és a repóban soha.
 5. Feltöltésnél a típust a fájl tartalma dönti el, nem a kiterjesztés; SVG nem fogadható el; max. 5 MB.
 6. Minden hivatkozásnál (kategória, deviza, fizetési mód, háztag, helyettesítő előfizetés) ellenőrizzük, hogy az adott felhasználóé-e.
+7. Belépési lépés (2FA, OIDC-state) csak D1-ben, hash-elt tokennel és HttpOnly sütivel tárolható, egyszer használható és lejár (`src/services/login-guard.ts`). Új belépési útvonal a belépés-korlátozáson (`loginAllowed` / `recordLoginFailure`) megy át.
+8. Mentőkódot, tokent csak hash-ként tárolunk; ami visszafejthetőnek kell maradjon (TOTP-titok, OIDC client secret), azt a felület és az API maszkolva vagy egyáltalán nem mutatja.
+9. Két összetartozó írás (pl. `totp_enabled` és a `totp` sor) egy `batch`-ben megy, hogy ne maradhasson ellentmondásos állapot.
 
 ## 5. Kód
 

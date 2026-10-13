@@ -3,6 +3,7 @@ import type { AppBindings, Env } from "../../env";
 import { ADMIN_USER_ID } from "../../env";
 import { emailConfigured } from "../../lib/email";
 import { LOGO_DIR } from "../../services/files";
+import { maskedSettings, oidcConfiguration, type OidcSettings } from "../../services/oidc";
 import { loadUi, uiPage, type UiCtx } from "../context";
 import { asset, page } from "../layout";
 
@@ -14,7 +15,7 @@ import { asset, page } from "../layout";
   What the Worker does differently shows here:
   - E-mail goes out through Resend, configured with the RESEND_API_KEY secret
     and the EMAIL_FROM variable, so the SMTP fields only show that state.
-  - OIDC and two-factor login are not part of the Worker yet.
+  - The OIDC client secret is shown masked; saving the mask keeps it.
   - Requests leave from Cloudflare's network, where the LAN is unreachable, so
     there is no local-webhook allowlist.
   - "Disable login" (password-less access) is not supported.
@@ -51,17 +52,17 @@ function Note({ icon = "fa-circle-info", children }: { icon?: string; children?:
   );
 }
 
-const OIDC_FIELDS: [string, string][] = [
-  ["oidcName", "Provider Name"],
-  ["oidcClientId", "Client ID"],
-  ["oidcClientSecret", "Client Secret"],
-  ["oidcAuthUrl", "Auth URL"],
-  ["oidcTokenUrl", "Token URL"],
-  ["oidcUserInfoUrl", "User Info URL"],
-  ["oidcRedirectUrl", "Redirect URL"],
-  ["oidcLogoutUrl", "Logout URL"],
-  ["oidcUserIdentifierField", "User Identifier Field"],
-  ["oidcScopes", "Scopes"],
+const OIDC_FIELDS: [string, string, keyof OidcSettings][] = [
+  ["oidcName", "Provider Name", "name"],
+  ["oidcClientId", "Client ID", "client_id"],
+  ["oidcClientSecret", "Client Secret", "client_secret"],
+  ["oidcAuthUrl", "Auth URL", "authorization_url"],
+  ["oidcTokenUrl", "Token URL", "token_url"],
+  ["oidcUserInfoUrl", "User Info URL", "user_info_url"],
+  ["oidcRedirectUrl", "Redirect URL", "redirect_url"],
+  ["oidcLogoutUrl", "Logout URL", "logout_url"],
+  ["oidcUserIdentifierField", "User Identifier Field", "user_identifier_field"],
+  ["oidcScopes", "Scopes", "scopes"],
 ];
 
 const CRONJOBS: [string, string][] = [
@@ -97,6 +98,10 @@ routes.get("/admin.php", uiPage, async (c: UiCtx) => {
   const mailReady = emailConfigured(c.env);
   const fromEmail = c.env.EMAIL_FROM ?? "";
   const logosToDelete = await countUnusedLogos(c.env);
+  const oidc = await oidcConfiguration(c.env);
+  const oidcSettings = maskedSettings(oidc.settings);
+  // oidc_input_attrs(): a field pinned by a variable is shown but cannot be edited.
+  const managed = (field: string) => (oidc.managedFields[field] ? { disabled: true, "data-managed-by": oidc.managedFields[field] } : {});
 
   const body = (
     <>
@@ -208,31 +213,35 @@ routes.get("/admin.php", uiPage, async (c: UiCtx) => {
           </header>
           <div class="admin-form">
             <div class="form-group-inline">
-              <input type="checkbox" id="oidcEnabled" disabled onchange="toggleOidcEnabled()" />
+              <input type="checkbox" id="oidcEnabled" checked={oidc.enabled === 1} {...managed("enabled")} onchange="toggleOidcEnabled()" />
               <label for="oidcEnabled">{t("oidc_oauth_enabled")}</label>
             </div>
-            {OIDC_FIELDS.map(([id, placeholder]) => (
+            {OIDC_FIELDS.map(([id, placeholder, field]) => (
               <div class="form-group">
-                <input type="text" id={id} placeholder={placeholder} autocomplete="off" value="" disabled />
+                <input type="text" id={id} placeholder={placeholder} autocomplete="off" value={String(oidcSettings[field])} {...managed(field)} />
               </div>
             ))}
             <div class="form-group">
-              <input type="hidden" id="oidcAuthStyle" placeholder="Auth Style" autocomplete="off" value="" />
+              <input type="hidden" id="oidcAuthStyle" placeholder="Auth Style" autocomplete="off" value={oidcSettings.auth_style} />
             </div>
             <div class="form-group-inline">
-              <input type="checkbox" id="oidcAutoCreateUser" disabled />
+              <input type="checkbox" id="oidcAutoCreateUser" checked={oidcSettings.auto_create_user === 1} {...managed("auto_create_user")} />
               <label for="oidcAutoCreateUser">{t("create_user_automatically")}</label>
             </div>
             <div class="form-group-inline">
-              <input type="checkbox" id="oidcPasswordLoginDisabled" disabled />
+              <input type="checkbox" id="oidcPasswordLoginDisabled" checked={oidcSettings.password_login_disabled === 1} {...managed("password_login_disabled")} />
               <label for="oidcPasswordLoginDisabled">{t("disable_password_login")}</label>
             </div>
             <div class="form-group-inline">
-              <input type="checkbox" id="oidcRequireEmailVerified" checked disabled />
+              <input type="checkbox" id="oidcRequireEmailVerified" checked={oidcSettings.require_email_verified === 1} {...managed("require_email_verified")} />
               <label for="oidcRequireEmailVerified">{t("require_email_verified_linking")}</label>
             </div>
             <div class="settings-notes">
-              <Note>OIDC login is not available on this server yet.</Note>
+              <Note>Redirect URL: the address of this Wallos (e.g. https://wallos.example.com/), registered at the provider as the callback.</Note>
+              {Object.keys(oidc.managedFields).length > 0 && <Note>OIDC fields managed by environment variables are shown here but cannot be edited in the UI.</Note>}
+              {oidc.notes.map((note) => (
+                <Note>{note}</Note>
+              ))}
             </div>
             <div class="buttons">
               <input type="submit" class="thin mobile-grow" value={t("save")} id="saveOidcSettingsButton" onclick="saveOidcSettingsButton()" />

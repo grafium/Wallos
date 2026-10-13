@@ -56,6 +56,7 @@
 13. **Cron-korlátok.** Az ingyenes Workers csomag egy cron-futásban 50 kimenő hívást enged (fizetős: 1000). Sok felhasználónál a fizetős csomag kell, nagyon sok felhasználónál a küldést Cloudflare Queues-ra érdemes tenni.
 14. **Képek GD nélkül.** A Workersben nincs GD; az átméretezést a Cloudflare Images binding végzi (opcionális, külön díjköteles a havi ingyenes kereten felül). Nélküle a feltöltött kép eredeti méretben kerül tárolásra, és a pixelműveletek (háttér, variáns) csak legfeljebb 1 megapixeles PNG-n futnak, a CPU-korlát miatt.
 15. **Felület változatlan JS-sel.** A PHP JavaScriptje a böngészőben változatlan, ezért a HTML-szerkezetet és az `endpoints/*.php` válaszformátumait pontosan követni kell; a PHP-ban frissülő JS/CSS-t a `build-assets` minden buildnél újramásolja, a sablonváltozásokat viszont kézzel kell átvezetni a JSX-oldalakra.
+16. **SSO-only kizárás.** Ha az admin csak OIDC-belépést enged, és a szolgáltató elérhetetlen, senki nem tud belépni; ilyenkor `OIDC_DISABLE_PASSWORD_LOGIN=false` változóval vagy egy D1-paranccsal kapcsolható vissza a jelszó (README). A 2FA-t elvesztett felhasználó mentőkóddal léphet be; ha az sincs, az admin D1-ben kapcsolhatja ki (`UPDATE user SET totp_enabled = 0 …; DELETE FROM totp …`).
 
 ## 2. Ebben a körben elkészült (1. fázis)
 
@@ -117,6 +118,16 @@
 - A mentés az admin oldalon zip-be csomagolt JSON-export (nincs SQLite-fájl); visszaállítás és PHP-adatbázis importja az importáló CLI-vel megy.
 - SMTP-beállítás helyett Resend (titokként), a helyi webhook-engedélylista nem alkalmazható; a cron-gombok csak jelzik, hogy a feladat az óránkénti triggeren fut.
 
+## 2f. Elkészült a 6. fázisban
+
+- **Kétlépcsős azonosítás (TOTP, RFC 6238)** könyvtár nélkül, WebCrypto HMAC-SHA1-gyel, az OTPHP-val azonos paraméterekkel (6 jegy, 30 s, ±15 s türelem). Bekapcsolás a profil oldalon a PHP változatlan JS-ével (QR-kód, 10 mentőkód), a belépés második lépése a `totp.php` oldalon, rövid életű, HttpOnly sütiben tartott várakozó lépéssel (`auth_flows` tábla). Öt hibás kód után 30 s zárolás fiókonként, egy kód (időlépés) csak egyszer fogadható el, a mentőkód egyszer használható. API: `totp_code` a belépésnél, `/api/me/two-factor` végpontok.
+- **OIDC egyszeri bejelentkezés:** authorization code flow PKCE-vel (S256), egyszer használható `state`; a visszatérés bármelyik oldalra érkezhet `?code&state`-tel (mint a PHP `checksession.php`-nál). Fiók-összekötés azonosítóval, majd megerősített e-maillel; automatikus fiók-létrehozás a szolgáltató nevével és nyelvével; kijelentkezés a szolgáltatónál is. Admin oldal és végpontok, PHP-kompatibilis admin API, `OIDC_*` változók (discovery `OIDC_ISSUER`-rel). SSO-only mód az űrlapon, az API-n és a regisztrációnál is.
+- **Belépés-korlátozás** (a PHP-ban nem volt): D1-számlálók cím és cím+felhasználónév szerint (10/30 hiba 15 percen belül → 15 perc tiltás), a jelszó-visszaállítás kérése címenként 15 percenként 10; opcionális Workers Rate Limiting binding.
+- **Importáló:** a `totp` tábla (a mentőkódok hash-elve), az `oauth_settings`, az `admin.oidc_oauth_enabled` és a fiókok `oidc_sub` mezője is átjön; a lehetetlen állapotot (2FA bekapcsolva titok nélkül) és az ütköző OIDC-azonosítókat javítja és jelzi.
+- **Tesztek:** 221 teszt (RFC 6238 tesztvektorok, a teljes 2FA- és OIDC-folyamat kimenő hívásokkal mockolva, zárolás, újrajátszás, SSO-only, változós felülírás, import); a böngészős füstteszt a 2FA bekapcsolását, a kétlépcsős belépést és a mentőkódos kikapcsolást is végigjátssza.
+
+**Eltérések a PHP-tól:** a mentőkódokat csak SHA-256 hash-ként tároljuk; a 2FA be- és kikapcsolása egy tranzakció; az OIDC-folyamat PKCE-t is küld; a client secret az admin oldalon és az API-ban maszkolva látszik (`********`; visszaküldve megmarad); a `OIDC_CLIENT_SECRET_FILE` helyett Worker-titok (`OIDC_CLIENT_SECRET`) használható; a „Disable login” (jelszó nélküli mód) továbbra sincs.
+
 ## 3. Ütemterv
 
 Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőségi sorrend; a 3. és 4. párhuzamosítható.
@@ -129,11 +140,11 @@ Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőség
 | 3 | **Árfolyamok, értesítések, e-mail** ✅ | Árfolyam-cron (Frankfurter alapból, Fixer/apilayer kulccsal); értesítési táblák migrációja; HTTP-csatornák: Discord, Telegram, Gotify, Pushover, ntfy, webhook, Mattermost, PushPlus, ServerChan; e-mail HTTP-szolgáltatón; Web Push (VAPID); lemondási értesítések; e-mail-megerősítés és jelszó-visszaállítás; felhasználónkénti időzóna; „teszt” végpontok | — | ✅ (lásd 2c) |
 | 4 | **Fájlok és logók** ✅ | R2 a logóknak és avatároknak; feltöltés méret- és típusellenőrzéssel; logó letöltése URL-ről SSRF-védelemmel; logókereső; törléskor a fájl takarítása; Cloudflare Images átméretezés (háttéreltávolítás opcionális) | — | ✅ (lásd 2d) |
 | 5 | **Webes felület** ✅ | Workers Static Assets a meglévő CSS/JS/képekhez; az oldalak portolása Hono JSX SSR-re (főoldal/előfizetések, statisztika, naptár, beállítások, profil, admin, belépés/regisztráció); i18n konverzió PHP → JSON; témák, egyedi CSS és színek; PWA manifest + service worker; cookie-s session CSRF-védelemmel, „emlékezz rám” | — | ✅ (lásd 2e) |
-| 6 | Haladó hitelesítés | TOTP 2FA (mentőkódokkal, kizárással); OIDC/OAuth SSO, csak-SSO mód; belépési rate limit (Workers Rate Limiting) | 1 hét | A PHP biztonsági javításai (GHSA-k) mind teljesülnek |
+| 6 | **Haladó hitelesítés** ✅ | TOTP 2FA (mentőkódokkal, kizárással); OIDC/OAuth SSO, csak-SSO mód; belépési rate limit | — | ✅ (lásd 2f) |
 | 7 | Költségtörténet, AI | Éves költségtörténet (heti cron) a statisztika-oldal történeti grafikonjához; AI-javaslatok (OpenAI/Gemini, opcionálisan Workers AI) heti/havi cronnal. (Naptárnézet és iCal feed az 5. fázisban elkészült.) | 0,5–1 hét | Statisztika-oldal és iCal paritás a PHP-val |
 | 8 | Élesítés | Egyedi domain, Cloudflare Access/WAF az admin felülethez; D1 Time Travel + időszakos export R2-be; GitHub Actions (teszt + deploy); monitorozás; átállás a PHP példányról (import, DNS) | 0,5–1 hét | Éles forgalom a Workeren, a PHP példány leállítható |
 
-**Hátralévő: kb. 2–3 hét** a teljes funkcióparitásig. A Worker már most használható webes felülettel és API-val (pl. Home Assistant integráció, mobilappok), és a meglévő adatok átköltöztethetők; a hiányzó részek (2FA, SSO, AI, költségtörténet) nélkül is.
+**Hátralévő: kb. 1–2 hét** a teljes funkcióparitásig (7. és 8. fázis). A Worker már most használható webes felülettel, 2FA-val, SSO-val és API-val (pl. Home Assistant integráció, mobilappok), és a meglévő adatok átköltöztethetők; hiányzik még az AI-javaslat és az éves költségtörténet.
 
 ### Cron-megfeleltetés
 

@@ -6,7 +6,10 @@ import { fail, ok, readBody, validationFailed } from "../lib/http";
 import { budgetSchema, passwordSchema, profileSchema, settingsSchema } from "../lib/schemas";
 import { deleteAvatarIfUnused } from "../services/files";
 import { getSettings, updateSettings } from "../services/settings";
+import { generateTotpSecret, otpauthUrl } from "../lib/totp";
+import { disableTotp, enableTotp, remainingBackupCodes, totpEnabled } from "../services/two-factor";
 import { WORKER_VERSION } from "../version";
+import { z } from "zod";
 
 type Ctx = Context<AppBindings>;
 
@@ -159,4 +162,54 @@ meRoutes.get("/export", async (c) => {
     settings: await getSettings(c.env.DB, userId),
     ...data,
   });
+});
+
+// --- two-factor authentication ----------------------------------------------------------
+// Session only: an API key must not be able to switch the second factor on or off.
+
+const sessionOnly = (c: Context<AppBindings>) =>
+  c.get("authMethod") !== "session" ? fail(c, 403, "Session required", "Manage two-factor authentication from a logged-in session.") : null;
+
+meRoutes.get("/two-factor", async (c) => {
+  const user = c.get("user");
+  return ok(c, "two_factor", { enabled: await totpEnabled(c.env.DB, user.id), backup_codes_remaining: await remainingBackupCodes(c.env.DB, user.id) });
+});
+
+/** A new secret to put into the authenticator; nothing is stored until /two-factor/enable confirms it. */
+meRoutes.post("/two-factor/setup", async (c) => {
+  const denied = sessionOnly(c);
+  if (denied) return denied;
+  if (await totpEnabled(c.env.DB, c.get("user").id)) return fail(c, 409, "Already enabled", "Two-factor authentication is already on.");
+  const secret = generateTotpSecret();
+  return ok(c, "two_factor_setup", { secret, otpauth_url: otpauthUrl(c.get("user").username, secret) });
+});
+
+const enableSchema = z.object({ secret: z.string().trim().min(16).max(128), code: z.coerce.string().trim().min(6).max(32) });
+const codeSchema = z.object({ code: z.coerce.string().trim().min(6).max(32) });
+
+meRoutes.post("/two-factor/enable", async (c) => {
+  const denied = sessionOnly(c);
+  if (denied) return denied;
+  const parsed = enableSchema.safeParse(await readBody(c));
+  if (!parsed.success) return validationFailed(c, parsed.error);
+  const result = await enableTotp(c.env.DB, c.get("user").id, parsed.data.secret, parsed.data.code);
+  if (!result.ok) {
+    if (result.reason === "already_enabled") return fail(c, 409, "Already enabled", "Two-factor authentication is already on.");
+    if (result.reason === "invalid_secret") return fail(c, 400, "Invalid parameter", "secret must be base32.", { fields: ["secret"] });
+    return fail(c, 400, "Invalid code", "The code does not match the secret.", { fields: ["code"] });
+  }
+  return ok(c, "Two-factor authentication enabled", { backup_codes: result.backupCodes });
+});
+
+meRoutes.post("/two-factor/disable", async (c) => {
+  const denied = sessionOnly(c);
+  if (denied) return denied;
+  const parsed = codeSchema.safeParse(await readBody(c));
+  if (!parsed.success) return validationFailed(c, parsed.error);
+  const result = await disableTotp(c.env.DB, c.get("user").id, parsed.data.code);
+  if (!result.ok) {
+    if (result.reason === "not_enabled") return fail(c, 409, "Not enabled", "Two-factor authentication is not on.");
+    return fail(c, 400, "Invalid code", "The code is incorrect.", { fields: ["code"] });
+  }
+  return ok(c, "Two-factor authentication disabled", {});
 });

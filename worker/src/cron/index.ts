@@ -2,6 +2,7 @@ import type { Env } from "../env";
 import { runReminders } from "../notifications/reminders";
 import { purgeExpiredResets } from "../services/email-flows";
 import { runExchangeRates } from "../services/exchange-rates";
+import { purgeLoginState } from "../services/login-guard";
 import { purgeExpiredSessions, updateNextPayments } from "./update-next-payment";
 
 /*
@@ -10,6 +11,7 @@ import { purgeExpiredSessions, updateNextPayments } from "./update-next-payment"
   fixed UTC hour:
 
     01:00  updatenextpayment.php  -> updateNextPayments, session cleanup
+    hourly                        -> expired login steps and throttle counters
     02:00  updateexchange.php     -> runExchangeRates
     03:00  cleanupresettokens.php -> purgeExpiredResets, old notification log
 
@@ -33,6 +35,8 @@ export async function runScheduled(env: Env, scheduledTime: number): Promise<voi
     await step("updatenextpayment", () => updateNextPayments(env.DB));
     await step("sessions", () => purgeExpiredSessions(env.DB));
   }
+  // Expired login steps and throttle counters; cheap, so every hour.
+  await step("loginstate", () => purgeLoginState(env.DB));
   if (hour === 2) {
     await step("updateexchange", () => runExchangeRates(env.DB));
   }

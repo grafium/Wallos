@@ -11,10 +11,24 @@
 // Needs Playwright with a Chromium: `npm i -g playwright` (or set
 // PLAYWRIGHT_MODULE to its path). Env: BASE (default http://localhost:8799),
 // SHOTS (screenshot directory, default the OS temp dir), PAGES (comma list),
-// SKIP_INTERACTIONS=1, USERNAME_SMOKE / PASSWORD_SMOKE (default admin / supersecret).
+// SKIP_INTERACTIONS=1, SKIP_2FA=1, USERNAME_SMOKE / PASSWORD_SMOKE (default admin / supersecret).
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { execSync } from "node:child_process";
+import { createHmac } from "node:crypto";
+
+/** RFC 6238 code for a base32 secret (SHA-1, 6 digits, 30 s). */
+function totp(secret, step = Math.floor(Date.now() / 30000)) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "";
+  for (const char of secret.replace(/=+$/, "")) bits += alphabet.indexOf(char).toString(2).padStart(5, "0");
+  const key = Buffer.from(bits.match(/.{8}/g).map((b) => parseInt(b, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(step));
+  const mac = createHmac("sha1", key).update(counter).digest();
+  const offset = mac[mac.length - 1] & 15;
+  return String((mac.readUInt32BE(offset) & 0x7fffffff) % 1e6).padStart(6, "0");
+}
 
 function loadPlaywright() {
   const require = createRequire(import.meta.url);
@@ -116,6 +130,48 @@ if (!process.env.SKIP_INTERACTIONS) {
   const charts = await page.locator(".apexcharts-canvas").count();
   log("charts rendered:", charts);
   if (!charts) problems.push("no chart rendered on stats.php");
+}
+
+// --- two-factor authentication through the profile page -------------------------------------
+if (!process.env.SKIP_INTERACTIONS && !process.env.SKIP_2FA) {
+  await page.goto(`${BASE}/profile.php`);
+  await page.waitForLoadState("networkidle");
+  await page.click("#enableTotp");
+  // qrcode.js draws a canvas and an <img>, and hides one of them; wait for either to exist.
+  await page.waitForSelector("#totp-qr-code canvas, #totp-qr-code img, #totp-qr-code table", { state: "attached", timeout: 5000 }).catch(() => problems.push("2FA: no QR code drawn"));
+  const secret = await page.inputValue("#totp-secret");
+  const enrolStep = Math.floor(Date.now() / 30000);
+  await page.fill("#totp", totp(secret, enrolStep));
+  await page.click("#enableTotpButton");
+  await page.waitForSelector("#backup-codes li", { timeout: 5000 }).catch(() => problems.push("2FA: no backup codes shown"));
+  const backupCodes = await page.locator("#backup-codes li").allTextContents();
+  log("2FA enabled, backup codes:", backupCodes.length);
+
+  await page.goto(`${BASE}/logout.php`);
+  await page.waitForURL(/login\.php/);
+  await page.fill("#username", USERNAME);
+  await page.fill("#password", PASSWORD);
+  await page.click('input[type="submit"]');
+  await page.waitForURL(/totp\.php/);
+  // The enrolment code's step is used up; wait for the next one.
+  while (Math.floor(Date.now() / 30000) <= enrolStep) await page.waitForTimeout(1000);
+  await page.fill("#one-time-code", totp(secret));
+  await page.click('input[type="submit"]');
+  await page.waitForLoadState("networkidle");
+  log("after the second step:", page.url());
+  if (/totp\.php|login\.php/.test(page.url())) problems.push(`2FA login did not finish: ${page.url()}`);
+
+  // Switch it off again with a backup code, so the next run signs in with the password alone.
+  await page.goto(`${BASE}/profile.php`);
+  await page.waitForLoadState("networkidle");
+  await page.click("#disableTotp");
+  await page.fill("#totp-disable", (backupCodes[0] ?? "").trim());
+  await page.click("#disableTotpButton");
+  await page.waitForTimeout(1500);
+  await page.goto(`${BASE}/profile.php`);
+  const off = (await page.locator("#enableTotp").count()) > 0;
+  log("2FA disabled with a backup code:", off);
+  if (!off) problems.push("2FA could not be disabled with a backup code");
 }
 
 await browser.close();

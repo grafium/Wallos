@@ -7,6 +7,7 @@ import { flag, registerSchema } from "../lib/schemas";
 import { emailConfigured } from "../lib/email";
 import { registerUser } from "../services/accounts";
 import { deleteUnusedLogos, deleteUserAccount } from "../services/files";
+import { maskedSettings, oidcConfiguration, OidcSettingsError, saveOidcSettings, setOidcEnabled, type OidcSettings } from "../services/oidc";
 
 /*
   Instance administration. As in PHP Wallos the administrator is user 1.
@@ -25,7 +26,7 @@ export const requireAdmin: MiddlewareHandler<AppBindings> = async (c, next) => {
   return next();
 };
 
-const ADMIN_COLUMNS = ["registrations_open", "max_users", "require_email_verification", "server_url", "update_notification"] as const;
+const ADMIN_COLUMNS = ["registrations_open", "max_users", "require_email_verification", "server_url", "update_notification", "oidc_oauth_enabled"] as const;
 
 const adminSettingsSchema = z
   .object({
@@ -38,6 +39,7 @@ const adminSettingsSchema = z
       .max(2048)
       .refine((v) => v === "" || /^https?:\/\/[^\s]+$/i.test(v), "Expected an http(s) URL"),
     update_notification: flag,
+    oidc_oauth_enabled: flag,
   })
   .partial();
 
@@ -51,6 +53,9 @@ export async function updateAdminSettingsHandler(c: Ctx, body: Record<string, un
   if (!parsed.success) return validationFailed(c, parsed.error);
   const entries = Object.entries(parsed.data).filter(([, value]) => value !== undefined);
   if (entries.length === 0) return fail(c, 400, "Missing parameters", `Provide at least one of: ${ADMIN_COLUMNS.join(", ")}.`);
+  if (parsed.data.oidc_oauth_enabled !== undefined && c.env.OIDC_ENABLED !== undefined) {
+    return fail(c, 409, "Environment override", "OIDC enablement is managed by the OIDC_ENABLED environment variable.", { fields: ["oidc_oauth_enabled"] });
+  }
   if (parsed.data.require_email_verification === 1 && !emailConfigured(c.env)) {
     return fail(c, 400, "E-mail not configured", "Set RESEND_API_KEY and EMAIL_FROM before requiring e-mail verification.", {
       fields: ["require_email_verification"],
@@ -111,3 +116,58 @@ adminRoutes.delete("/users/:id", async (c) => {
 
 /** Deletes logo files that no subscription or payment method uses (deleteunusedlogos.php). */
 adminRoutes.post("/files/cleanup", async (c) => ok(c, "Unused logos deleted", await deleteUnusedLogos(c.env)));
+
+// --- OIDC ------------------------------------------------------------------------------
+
+/** The effective OIDC configuration (client secret masked), as get_oidc_settings.php answers. */
+export async function oidcSettingsHandler(c: Ctx) {
+  const config = await oidcConfiguration(c.env);
+  const stored = await c.env.DB.prepare("SELECT created_at, updated_at FROM oauth_settings WHERE id = 1").first<{ created_at: string; updated_at: string }>();
+  return ok(c, "oidc_settings", {
+    oidc_settings: { ...maskedSettings(config.settings), created_at: stored?.created_at ?? null, updated_at: stored?.updated_at ?? null },
+    oidc_enabled: config.enabled,
+    is_configured: config.isConfigured,
+    managed_fields: config.managedFields,
+    notes: config.notes,
+  });
+}
+
+const OIDC_FIELDS = ["name", "client_id", "client_secret", "authorization_url", "token_url", "user_info_url", "redirect_url", "logout_url", "user_identifier_field", "scopes", "auth_style", "auto_create_user", "password_login_disabled", "require_email_verified"] as const;
+
+/** set_oidc_settings.php: optional oidc_enabled plus any of the fields. */
+export async function updateOidcSettingsHandler(c: Ctx, body: Record<string, unknown>) {
+  const enabledValue = body.oidc_enabled ?? body.enabled;
+  if (enabledValue !== undefined) {
+    const error = await setOidcEnabled(c.env, Number(enabledValue) === 1 || enabledValue === true);
+    if (error) return fail(c, 409, "Environment override", error);
+  }
+  const submitted: Partial<Record<keyof OidcSettings, unknown>> = {};
+  for (const field of OIDC_FIELDS) if (body[field] !== undefined) submitted[field] = body[field];
+  try {
+    await saveOidcSettings(c.env, submitted);
+  } catch (error) {
+    if (error instanceof OidcSettingsError) return fail(c, 400, "Security Error", error.message);
+    throw error;
+  }
+  return ok(c, "OIDC settings saved", { message: "OIDC configurations have been saved successfully." });
+}
+
+/** set_disable_password_login.php */
+export async function disablePasswordLoginHandler(c: Ctx, body: Record<string, unknown>) {
+  const disable = body.disable === undefined ? undefined : String(body.disable);
+  if (disable === undefined) return fail(c, 400, "Missing parameter", 'Parameter "disable" is required.');
+  if (disable !== "0" && disable !== "1") return fail(c, 400, "Invalid parameter", 'Parameter "disable" must be "0" or "1".');
+  if (c.env.OIDC_DISABLE_PASSWORD_LOGIN !== undefined) {
+    return fail(c, 409, "Managed by environment", "Password login is managed by the OIDC_DISABLE_PASSWORD_LOGIN environment variable.");
+  }
+  try {
+    await saveOidcSettings(c.env, { password_login_disabled: Number(disable) });
+  } catch (error) {
+    if (error instanceof OidcSettingsError) return fail(c, 400, "Security Error", error.message);
+    throw error;
+  }
+  return ok(c, "Updated", { message: `Password login has been ${disable === "1" ? "disabled" : "enabled"}.` });
+}
+
+adminRoutes.get("/oidc", (c) => oidcSettingsHandler(c));
+adminRoutes.patch("/oidc", async (c) => updateOidcSettingsHandler(c, await readBody(c)));

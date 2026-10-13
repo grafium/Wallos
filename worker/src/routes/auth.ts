@@ -15,6 +15,9 @@ import {
   verificationRequired,
   verifyEmail,
 } from "../services/email-flows";
+import { clientAddress, loginAllowed, recordLoginFailure, recordLoginSuccess } from "../services/login-guard";
+import { passwordLoginDisabled } from "../services/oidc";
+import { verifyTotpLogin } from "../services/two-factor";
 import { z } from "zod";
 
 export const authRoutes = new Hono<AppBindings>();
@@ -54,22 +57,44 @@ authRoutes.post("/register", async (c) => {
 });
 
 authRoutes.post("/login", async (c) => {
-  const parsed = loginSchema.safeParse(await readBody(c));
+  const body = await readBody(c);
+  const parsed = loginSchema.safeParse(body);
   if (!parsed.success) return validationFailed(c, parsed.error);
+  if (await passwordLoginDisabled(c.env)) {
+    return fail(c, 403, "Password login disabled", "This server only accepts single sign-on; log in through the web interface.");
+  }
 
-  const user = await c.env.DB.prepare("SELECT id, username, password FROM user WHERE username = ?")
+  const address = clientAddress(c);
+  if (!(await loginAllowed(c.env, address, parsed.data.username))) {
+    return fail(c, 429, "Too many attempts", "Too many failed logins; wait 15 minutes and try again.");
+  }
+
+  const user = await c.env.DB.prepare("SELECT id, username, password, totp_enabled FROM user WHERE username = ?")
     .bind(parsed.data.username)
-    .first<{ id: number; username: string; password: string }>();
+    .first<{ id: number; username: string; password: string; totp_enabled: number | null }>();
 
   dummyHash ??= hashPassword(randomToken(16));
   const check = await verifyPassword(parsed.data.password, user?.password ?? (await dummyHash));
   if (!user || !check.valid) {
+    await recordLoginFailure(c.env, address, parsed.data.username);
     return fail(c, 401, "Invalid credentials", "Username or password is incorrect.");
   }
 
   if (await isUnverified(c.env.DB, user.id)) {
     return fail(c, 403, "E-mail not verified", "Confirm your e-mail address with the link we sent, or request a new one.");
   }
+
+  // Two-factor accounts send the code (or a backup code) with the password: totp_code.
+  if (Number(user.totp_enabled ?? 0) === 1) {
+    const code = typeof body.totp_code === "string" || typeof body.totp_code === "number" ? String(body.totp_code).trim() : "";
+    if (!code) return fail(c, 401, "Two-factor authentication required", "Send the code from the authenticator app as totp_code.", { two_factor_required: true });
+    const result = await verifyTotpLogin(c.env.DB, user.id, code);
+    if (!result.ok) {
+      if (result.locked) return fail(c, 429, "Too many attempts", "Too many wrong codes; wait 30 seconds and try again.", { two_factor_required: true });
+      return fail(c, 401, "Invalid code", "The two-factor code is incorrect.", { two_factor_required: true });
+    }
+  }
+  await recordLoginSuccess(c.env, address, parsed.data.username);
 
   if (check.needsRehash) {
     await c.env.DB.prepare("UPDATE user SET password = ? WHERE id = ?")
@@ -122,6 +147,9 @@ authRoutes.post("/verification-email", async (c) => {
 authRoutes.post("/password-reset", async (c) => {
   const parsed = emailSchema.safeParse(await readBody(c));
   if (!parsed.success) return validationFailed(c, parsed.error);
+  const address = clientAddress(c);
+  if (!(await loginAllowed(c.env, address, "#reset"))) return fail(c, 429, "Too many attempts", "Too many requests; wait 15 minutes and try again.");
+  await recordLoginFailure(c.env, address, "#reset"); // every request counts: at most 10 per 15 minutes
   try {
     await requestPasswordReset(c.env, parsed.data.email, await publicBaseUrl(c.env, c.req.url));
   } catch (error) {

@@ -5,6 +5,7 @@ import { emailConfigured } from "../../lib/email";
 import { registerSchema } from "../../lib/schemas";
 import { registerUser } from "../../services/accounts";
 import { deleteUnusedLogos, deleteUserAccount } from "../../services/files";
+import { OidcSettingsError, saveOidcSettings, setOidcEnabled, type OidcSettings } from "../../services/oidc";
 import { WORKER_VERSION } from "../../version";
 import type { UiCtx } from "../context";
 import { userT } from "./user";
@@ -14,8 +15,7 @@ import { userT } from "./user";
   (scripts/admin.js). Only the administrator, user 1, may call them; anyone
   else gets PHP's {success: false, message: "Error"}.
 
-  Not part of the Worker, so these only say so: OIDC (enableoidc,
-  saveoidcsettings), SMTP (mail goes through Resend, configured with
+  Not part of the Worker, so these only say so: SMTP (mail goes through Resend, configured with
   RESEND_API_KEY / EMAIL_FROM) and the local-webhook allowlist
   (savesecuritysettings; private addresses are unreachable from Cloudflare).
 */
@@ -141,9 +141,48 @@ routes.post("/endpoints/admin/savesecuritysettings.php", (c) =>
   c.json({ success: false, message: "Requests leave from Cloudflare's network, where local and private addresses are not reachable, so there is no allowlist to configure." }),
 );
 
-export const OIDC_UNAVAILABLE = "OIDC login is not available on this server yet.";
-routes.post("/endpoints/admin/enableoidc.php", (c) => c.json({ success: false, message: OIDC_UNAVAILABLE }));
-routes.post("/endpoints/admin/saveoidcsettings.php", (c) => c.json({ success: false, message: OIDC_UNAVAILABLE }));
+// --- enableoidc.php / saveoidcsettings.php -------------------------------------------------
+
+routes.post("/endpoints/admin/enableoidc.php", async (c) => {
+  const t = userT(c);
+  const error = await setOidcEnabled(c.env, isOne((await jsonBody(c)).oidcEnabled));
+  return error ? c.json({ success: false, message: error }) : c.json({ success: true, message: t("success") });
+});
+
+/** The form's field names -> oauth_settings columns. */
+const OIDC_FORM: [string, keyof OidcSettings][] = [
+  ["oidcName", "name"],
+  ["oidcClientId", "client_id"],
+  ["oidcClientSecret", "client_secret"],
+  ["oidcAuthUrl", "authorization_url"],
+  ["oidcTokenUrl", "token_url"],
+  ["oidcUserInfoUrl", "user_info_url"],
+  ["oidcRedirectUrl", "redirect_url"],
+  ["oidcLogoutUrl", "logout_url"],
+  ["oidcUserIdentifierField", "user_identifier_field"],
+  ["oidcScopes", "scopes"],
+  ["oidcAuthStyle", "auth_style"],
+  ["oidcAutoCreateUser", "auto_create_user"],
+  ["oidcPasswordLoginDisabled", "password_login_disabled"],
+  ["oidcRequireEmailVerified", "require_email_verified"],
+];
+
+routes.post("/endpoints/admin/saveoidcsettings.php", async (c) => {
+  const t = userT(c);
+  const data = await jsonBody(c);
+  const submitted: Partial<Record<keyof OidcSettings, unknown>> = {};
+  for (const [key, field] of OIDC_FORM) {
+    // Like PHP, a missing field means empty / off (require_email_verified defaults on).
+    submitted[field] = data[key] ?? (field === "require_email_verified" ? 1 : field.endsWith("_user") || field.endsWith("_disabled") ? 0 : "");
+  }
+  try {
+    await saveOidcSettings(c.env, submitted);
+  } catch (error) {
+    if (error instanceof OidcSettingsError) return c.json({ success: false, message: error.message });
+    throw error;
+  }
+  return c.json({ success: true, message: t("success") });
+});
 
 // --- endpoints/cronjobs/*.php (the admin page's buttons) -------------------------------------
 

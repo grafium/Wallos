@@ -1,7 +1,7 @@
 import { Hono, type Context } from "hono";
 import type { Child } from "hono/jsx";
 import { raw } from "hono/html";
-import { getCookie, setCookie } from "hono/cookie";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type { AppBindings } from "../../env";
 import { ADMIN_USER_ID } from "../../env";
 import { createSession, userFromSession } from "../../lib/auth";
@@ -19,6 +19,9 @@ import {
   verificationRequired,
   verifyEmail,
 } from "../../services/email-flows";
+import { clientAddress, endFlow, loginAllowed, readFlow, recordLoginFailure, recordLoginSuccess, startFlow } from "../../services/login-guard";
+import { authorizationRequest, completeOidcLogin, oidcActive, oidcConfiguration, oidcLogoutUrl, passwordLoginDisabled, stateMatches } from "../../services/oidc";
+import { verifyTotpLogin } from "../../services/two-factor";
 import { WORKER_VERSION } from "../../version";
 import { LANGUAGES, resolveLanguage, translator, type Translate } from "../i18n";
 import { Icon, js } from "../layout";
@@ -156,53 +159,108 @@ function preferenceCookie(c: Ctx, name: string, value: string) {
   setCookie(c, name, value, { path: "/", sameSite: "Lax", maxAge: YEAR });
 }
 
+// --- signing in -------------------------------------------------------------------
+
+const TOTP_COOKIE = "wallos_2fa";
+const OIDC_COOKIE = "wallos_oidc";
+const FLOW_SECONDS = 10 * 60;
+
+function flowCookie(c: Ctx, name: string, token: string) {
+  setCookie(c, name, token, { path: "/", httpOnly: true, sameSite: "Lax", secure: new URL(c.req.url).protocol === "https:", maxAge: FLOW_SECONDS });
+}
+
+/** Starts the session and sets the preference cookies, as every PHP login path did; then goes home. */
+async function signIn(c: Ctx, userId: number, persistent: boolean, viaOidc = false) {
+  const user = await c.env.DB.prepare("SELECT u.language, s.color_theme FROM user u LEFT JOIN settings s ON s.user_id = u.id WHERE u.id = ?")
+    .bind(userId)
+    .first<{ language: string | null; color_theme: string | null }>();
+  const token = randomToken(32);
+  const expiresAt = await createSession(c.env, userId, token, c.req.header("user-agent") ?? "", { viaOidc });
+  setSessionCookie(c, token, expiresAt, persistent);
+  preferenceCookie(c, "language", resolveLanguage(user?.language));
+  if (!getCookie(c, "sortOrder")) preferenceCookie(c, "sortOrder", "next_payment");
+  preferenceCookie(c, "colorTheme", user?.color_theme || "blue");
+  return c.redirect(".");
+}
+
 // --- login.php -------------------------------------------------------------------
 
 let dummyHash: Promise<string> | null = null;
+
+const OIDC_ERRORS = new Set(["oidc_user_not_found", "oidc_invalid_state", "oidc_email_not_verified", "oidc_invalid_config"]);
 
 async function loginPage(c: Ctx) {
   if ((await userCount(c)) === 0) return c.redirect("registration.php");
   if (await hasSession(c)) return c.redirect(".");
 
+  // A half-finished two-factor login is abandoned by coming back here.
+  const pending = getCookie(c, TOTP_COOKIE);
+  if (pending) {
+    await endFlow(c.env.DB, pending);
+    deleteCookie(c, TOTP_COOKIE, { path: "/" });
+  }
+
   const lang = visitorLanguage(c);
   const t = translator(lang);
   const errors: string[] = [];
+  let status: 200 | 401 | 429 = 200;
+
+  const oidc = await oidcConfiguration(c.env);
+  const oidcEnabled = oidcActive(oidc);
+  // SSO-only is enforced here, not just by hiding the form.
+  const passwordLoginDisabled = oidcEnabled && oidc.settings.password_login_disabled === 1;
 
   if (c.req.method === "POST") {
     const body = await c.req.parseBody();
     const username = String(body.username ?? "").trim();
     const password = String(body.password ?? "");
-    const user = username
-      ? await c.env.DB.prepare(
-          "SELECT u.id, u.password, u.language, s.color_theme FROM user u LEFT JOIN settings s ON s.user_id = u.id WHERE u.username = ?",
-        )
-          .bind(username)
-          .first<{ id: number; password: string; language: string | null; color_theme: string | null }>()
-      : null;
-    dummyHash ??= hashPassword(randomToken(16));
-    const check = await verifyPassword(password, user?.password ?? (await dummyHash));
-
-    if (user && check.valid) {
-      if (await isUnverified(c.env.DB, user.id)) {
-        errors.push(t("user_email_waiting_verification"));
-      } else {
-        if (check.needsRehash) {
-          await c.env.DB.prepare("UPDATE user SET password = ? WHERE id = ?").bind(await hashPassword(password), user.id).run();
-        }
-        const token = randomToken(32);
-        const expiresAt = await createSession(c.env, user.id, token, c.req.header("user-agent") ?? "");
-        setSessionCookie(c, token, expiresAt, body.remember !== undefined);
-        preferenceCookie(c, "language", resolveLanguage(user.language));
-        if (!getCookie(c, "sortOrder")) preferenceCookie(c, "sortOrder", "next_payment");
-        preferenceCookie(c, "colorTheme", user.color_theme || "blue");
-        return c.redirect(".");
-      }
-    } else {
+    const address = clientAddress(c);
+    if (passwordLoginDisabled) {
       errors.push(t("login_failed"));
+      status = 401;
+    } else if (!(await loginAllowed(c.env, address, username))) {
+      errors.push(t("totp_too_many_attempts"));
+      status = 429;
+    } else {
+      const user = username
+        ? await c.env.DB.prepare("SELECT id, password, totp_enabled FROM user WHERE username = ?")
+            .bind(username)
+            .first<{ id: number; password: string; totp_enabled: number | null }>()
+        : null;
+      dummyHash ??= hashPassword(randomToken(16));
+      const check = await verifyPassword(password, user?.password ?? (await dummyHash));
+
+      if (user && check.valid) {
+        await recordLoginSuccess(c.env, address, username);
+        if (await isUnverified(c.env.DB, user.id)) {
+          errors.push(t("user_email_waiting_verification"));
+          status = 401;
+        } else {
+          if (check.needsRehash) {
+            await c.env.DB.prepare("UPDATE user SET password = ? WHERE id = ?").bind(await hashPassword(password), user.id).run();
+          }
+          const remember = body.remember !== undefined;
+          if (Number(user.totp_enabled ?? 0) === 1) {
+            // The session starts only after the second factor (totp.php).
+            flowCookie(c, TOTP_COOKIE, await startFlow(c.env.DB, "totp", user.id, { remember }, FLOW_SECONDS));
+            return c.redirect("totp.php");
+          }
+          return signIn(c, user.id, remember);
+        }
+      } else {
+        await recordLoginFailure(c.env, address, username);
+        errors.push(t("login_failed"));
+        status = 401;
+      }
     }
   }
 
-  const registration = await canRegister(c.env.DB);
+  const oidcError = c.req.query("error") ?? "";
+  if (OIDC_ERRORS.has(oidcError) && errors.length === 0) {
+    errors.push(oidcError === "oidc_email_not_verified" ? t("oidc_email_not_verified") : t("login_failed"));
+  }
+
+  const registration = passwordLoginDisabled ? { allowed: false } : await canRegister(c.env.DB);
   const success: (string | { plain: string })[] = [];
   if (c.req.query("validated") === "true") success.push(t("email_verified"));
   else if (c.req.query("registered")) {
@@ -213,25 +271,38 @@ async function loginPage(c: Ctx) {
   return c.html(
     <AuthFrame c={c} t={t} lang={lang} script="login.js" title={t("please_login")}>
       <form action="login.php" method="post">
+        {!passwordLoginDisabled && (
+          <>
+            <div class="form-group">
+              <label for="username">{t("username")}:</label>
+              <input type="text" id="username" name="username" autocomplete="username" required />
+            </div>
+            <div class="form-group">
+              <label for="password">{t("password")}:</label>
+              <input type="password" id="password" name="password" autocomplete="current-password" required />
+            </div>
+            <div class="form-group-inline">
+              <input type="checkbox" id="remember" name="remember" />
+              <label for="remember">{t("stay_logged_in")}</label>
+            </div>
+            <div class="form-group">
+              <input type="submit" value={t("login")} />
+            </div>
+          </>
+        )}
         <div class="form-group">
-          <label for="username">{t("username")}:</label>
-          <input type="text" id="username" name="username" autocomplete="username" required />
+          {oidcEnabled && (
+            <>
+              {!passwordLoginDisabled && <span class="or-separator">{t("or")}</span>}
+              <a class="button secondary-button" href="oidclogin.php">
+                {t("login_with")} {oidc.settings.name}
+              </a>
+            </>
+          )}
         </div>
-        <div class="form-group">
-          <label for="password">{t("password")}:</label>
-          <input type="password" id="password" name="password" autocomplete="current-password" required />
-        </div>
-        <div class="form-group-inline">
-          <input type="checkbox" id="remember" name="remember" />
-          <label for="remember">{t("stay_logged_in")}</label>
-        </div>
-        <div class="form-group">
-          <input type="submit" value={t("login")} />
-        </div>
-        <div class="form-group"></div>
         <ErrorBox messages={errors} />
         <SuccessBox messages={success} />
-        {emailConfigured(c.env) && (
+        {emailConfigured(c.env) && !passwordLoginDisabled && (
           <div class="login-form-link">
             <a href="passwordreset.php">{t("forgot_password")}</a>
           </div>
@@ -244,12 +315,101 @@ async function loginPage(c: Ctx) {
         )}
       </form>
     </AuthFrame>,
-    errors.length ? 401 : 200,
+    status,
   );
 }
 
 routes.get("/login.php", loginPage);
 routes.post("/login.php", loginPage);
+
+// --- totp.php ----------------------------------------------------------------------
+
+async function totpPage(c: Ctx) {
+  if ((await userCount(c)) === 0) return c.redirect("registration.php");
+  if (await hasSession(c)) return c.redirect(".");
+  const flowToken = getCookie(c, TOTP_COOKIE);
+  const flow = await readFlow(c.env.DB, "totp", flowToken);
+  if (!flow?.userId) {
+    deleteCookie(c, TOTP_COOKIE, { path: "/" });
+    return c.redirect("login.php");
+  }
+
+  const lang = visitorLanguage(c);
+  const t = translator(lang);
+  const errors: string[] = [];
+  let status: 200 | 401 | 429 = 200;
+
+  if (c.req.method === "POST") {
+    const body = await c.req.parseBody();
+    const code = String(body["one-time-code"] ?? "").trim();
+    const address = clientAddress(c);
+    if (!(await loginAllowed(c.env, address, `#2fa:${flow.userId}`))) {
+      errors.push(t("totp_too_many_attempts"));
+      status = 429;
+    } else {
+      const result = await verifyTotpLogin(c.env.DB, flow.userId, code);
+      if (result.ok) {
+        // Each second step completes one login only.
+        if (!(await endFlow(c.env.DB, flowToken))) return c.redirect("login.php");
+        deleteCookie(c, TOTP_COOKIE, { path: "/" });
+        return signIn(c, flow.userId, flow.data.remember === true);
+      }
+      await recordLoginFailure(c.env, address, `#2fa:${flow.userId}`);
+      errors.push(result.locked ? t("totp_too_many_attempts") : t("totp_code_incorrect"));
+      status = result.locked ? 429 : 401;
+    }
+  }
+
+  return c.html(
+    <AuthFrame c={c} t={t} lang={lang} script="login.js" title={t("insert_totp_code")}>
+      <form action="totp.php" method="post">
+        <div class="form-group">
+          <label for="one-time-code">{t("totp_code")}:</label>
+          <input type="text" id="one-time-code" name="one-time-code" autocomplete="one-time-code" required />
+        </div>
+        <div class="form-group">
+          <input type="submit" value={t("login")} />
+        </div>
+        <ErrorBox messages={errors} />
+      </form>
+    </AuthFrame>,
+    status,
+  );
+}
+
+routes.get("/totp.php", totpPage);
+routes.post("/totp.php", totpPage);
+
+// --- OIDC: oidclogin.php starts it, the provider comes back with ?code&state ---------------
+
+routes.get("/oidclogin.php", async (c) => {
+  const config = await oidcConfiguration(c.env);
+  if (!oidcActive(config)) return c.redirect("login.php?error=oidc_invalid_config");
+  const request = await authorizationRequest(config);
+  flowCookie(c, OIDC_COOKIE, await startFlow(c.env.DB, "oidc", null, { state: request.state, codeVerifier: request.codeVerifier }, FLOW_SECONDS));
+  return c.redirect(request.url);
+});
+
+/** checksession.php: any page reached with ?code&state is the end of an OIDC login. */
+export async function oidcCallback(c: Ctx) {
+  const code = c.req.query("code") ?? "";
+  const state = c.req.query("state") ?? "";
+  const flowToken = getCookie(c, OIDC_COOKIE);
+  const flow = await readFlow(c.env.DB, "oidc", flowToken);
+  deleteCookie(c, OIDC_COOKIE, { path: "/" });
+  // The state is single-use: remove it before anything else can go wrong.
+  const fresh = flow ? await endFlow(c.env.DB, flowToken) : false;
+  if (!flow || !fresh || !code || !(await stateMatches(flow.data.state, state)) || typeof flow.data.codeVerifier !== "string") {
+    return c.redirect("login.php?error=oidc_invalid_state");
+  }
+  const result = await completeOidcLogin(c.env, code, flow.data.codeVerifier);
+  if (!result.ok) {
+    if ("fatal" in result) return c.text(result.fatal, 502);
+    return c.redirect(`login.php?error=${result.error}`);
+  }
+  // Like PHP, an OIDC login always stays signed in (its remember-me cookie).
+  return signIn(c, result.userId, true, true);
+}
 
 // --- registration.php ------------------------------------------------------------------
 
@@ -257,6 +417,8 @@ async function registrationPage(c: Ctx) {
   const count = await userCount(c);
   if (count > 0 && !(await canRegister(c.env.DB)).allowed) return c.redirect("login.php");
   if (count > 0 && (await hasSession(c))) return c.redirect(".");
+  // SSO-only: accounts come from the identity provider.
+  if (count > 0 && (await passwordLoginDisabled(c.env))) return c.redirect("login.php");
 
   const lang = visitorLanguage(c);
   const t = translator(lang);
@@ -370,9 +532,15 @@ routes.post("/registration.php", registrationPage);
 
 routes.get("/logout.php", async (c) => {
   const token = sessionTokenFromCookie(c);
-  if (token) await c.env.DB.prepare("DELETE FROM sessions WHERE id = ?").bind(await sha256Hex(token)).run();
+  let viaOidc = false;
+  if (token) {
+    const session = await c.env.DB.prepare("DELETE FROM sessions WHERE id = ? RETURNING via_oidc").bind(await sha256Hex(token)).first<{ via_oidc: number }>();
+    viaOidc = Number(session?.via_oidc ?? 0) === 1;
+  }
   clearSessionCookie(c);
-  return c.redirect("login.php");
+  // A session from the identity provider ends there too.
+  const providerLogout = viaOidc ? await oidcLogoutUrl(c.env) : null;
+  return c.redirect(providerLogout ?? "login.php");
 });
 
 // --- passwordreset.php ----------------------------------------------------------------------
@@ -390,9 +558,13 @@ async function passwordResetPage(c: Ctx) {
 
   if (c.req.method === "POST") {
     if (!resetMode) {
+      const address = clientAddress(c);
       if (!emailConfigured(c.env) || !email) {
         errors.push(t("error"));
+      } else if (!(await loginAllowed(c.env, address, "#reset"))) {
+        errors.push(t("totp_too_many_attempts"));
       } else {
+        await recordLoginFailure(c.env, address, "#reset"); // every request counts: at most 10 per 15 minutes
         await requestPasswordReset(c.env, email, await publicBaseUrl(c.env, c.req.url)).catch((error) => console.error("password reset e-mail failed", error));
         success.push(t("reset_sent_check_email"));
         hideForm = true;
@@ -481,5 +653,3 @@ async function verifyEmailPage(c: Ctx) {
 routes.get("/verifyemail.php", verifyEmailPage);
 routes.get("/verify-email", verifyEmailPage);
 
-// Two-factor login returns with phase 6; until then nothing redirects here.
-routes.get("/totp.php", (c) => c.redirect("login.php"));

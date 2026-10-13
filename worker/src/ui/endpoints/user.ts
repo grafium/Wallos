@@ -9,15 +9,14 @@ import { LANGUAGES as PROFILE_LANGUAGES } from "../../lib/schemas";
 import { BUDGET_PERIOD_TYPES } from "../../services/budget";
 import { refreshUserRates } from "../../services/exchange-rates";
 import { AVATAR_DIR, deleteAvatarIfUnused, MAX_UPLOAD_BYTES, processImage, storeAvatar, UploadError } from "../../services/files";
+import { generateTotpSecret, otpauthUrl } from "../../lib/totp";
+import { disableTotp, enableTotp, totpEnabled } from "../../services/two-factor";
 import type { UiCtx } from "../context";
 import { resolveLanguage, translator, type Translate } from "../i18n";
 
 /*
   endpoints/user/*.php, called by scripts/profile.js and scripts/settings.js.
   Answers have PHP's shape: HTTP 200 with {success, message, ...}.
-
-  Two-factor authentication is not part of the Worker yet, so enable_totp
-  and disable_totp only say so.
 */
 
 export const routes = new Hono<AppBindings>();
@@ -199,7 +198,33 @@ routes.post("/endpoints/user/regenerateapikey.php", async (c) => {
 
 // --- enable_totp.php / disable_totp.php ------------------------------------------------
 
-export const TOTP_UNAVAILABLE = "Two-factor authentication is not available on this server yet.";
+routes.post("/endpoints/user/enable_totp.php", async (c) => {
+  const t = userT(c);
+  const data = await jsonBody(c);
+  if (data.action === "generate") {
+    // The secret stays in the browser until a code proves the authenticator has it, as in PHP.
+    const secret = generateTotpSecret();
+    return c.json({ success: true, secret, qrCodeUrl: otpauthUrl(c.get("user").username, secret) });
+  }
+  if (data.action === "verify") {
+    const secret = typeof data.totpSecret === "string" ? data.totpSecret : "";
+    const code = typeof data.totpCode === "string" || typeof data.totpCode === "number" ? String(data.totpCode) : "";
+    if (!secret || !code) return c.json({ success: false, message: t("totp_code_incorrect") });
+    const result = await enableTotp(c.env.DB, c.get("user").id, secret, code);
+    if (result.ok) return c.json({ success: true, backupCodes: result.backupCodes, message: t("success") });
+    return c.json({ success: false, message: result.reason === "already_enabled" ? t("2fa_already_enabled") : t("totp_code_incorrect") });
+  }
+  return c.json({ success: false, message: t("error") });
+});
 
-routes.post("/endpoints/user/enable_totp.php", (c) => c.json({ success: false, message: TOTP_UNAVAILABLE }));
-routes.post("/endpoints/user/disable_totp.php", (c) => c.json({ success: false, message: TOTP_UNAVAILABLE, reload: false }));
+routes.post("/endpoints/user/disable_totp.php", async (c) => {
+  const t = userT(c);
+  const data = await jsonBody(c);
+  const code = typeof data.totpCode === "string" || typeof data.totpCode === "number" ? String(data.totpCode).trim() : "";
+  if (!(await totpEnabled(c.env.DB, c.get("user").id))) return c.json({ success: false, message: "2FA is not enabled for this user", reload: true });
+  if (!code) return c.json({ success: false, message: t("fields_missing"), reload: false });
+  const result = await disableTotp(c.env.DB, c.get("user").id, code);
+  if (result.ok) return c.json({ success: true, message: t("success"), reload: true });
+  if (result.reason === "not_enabled") return c.json({ success: false, message: "2FA is not enabled for this user", reload: true });
+  return c.json({ success: false, message: t("totp_code_incorrect"), reload: false });
+});

@@ -2,7 +2,7 @@ import { Hono, type Context } from "hono";
 import type { AppBindings } from "../env";
 import { fail, ok, parseId, readBody } from "../lib/http";
 import { WALLOS_COMPAT_VERSION } from "../version";
-import { adminSettingsHandler, requireAdmin, updateAdminSettingsHandler } from "./admin";
+import { adminSettingsHandler, disablePasswordLoginHandler, oidcSettingsHandler, requireAdmin, updateAdminSettingsHandler, updateOidcSettingsHandler } from "./admin";
 import { icalFeed } from "../ui/endpoints/subscriptions";
 import { legacyGetFixer, legacySetFixer } from "./exchange-rates";
 import { legacyNotificationSettings } from "./notifications";
@@ -79,6 +79,9 @@ legacyRoutes.post("/settings/set_settings.php", async (c) => updateSettingsHandl
 
 legacyRoutes.on(["GET", "POST"], "/admin/get_admin_settings.php", requireAdmin, (c) => adminSettingsHandler(c));
 legacyRoutes.post("/admin/set_admin_settings.php", requireAdmin, async (c) => updateAdminSettingsHandler(c, await requestParams(c)));
+legacyRoutes.on(["GET", "POST"], "/admin/get_oidc_settings.php", requireAdmin, (c) => oidcSettingsHandler(c));
+legacyRoutes.post("/admin/set_oidc_settings.php", requireAdmin, async (c) => updateOidcSettingsHandler(c, await requestParams(c)));
+legacyRoutes.post("/admin/set_disable_password_login.php", requireAdmin, async (c) => disablePasswordLoginHandler(c, await requestParams(c)));
 
 legacyRoutes.on(["GET", "POST"], "/notifications/get_notification_settings.php", (c) => legacyNotificationSettings(c));
 legacyRoutes.on(["GET", "POST"], "/fixer/get_fixer.php", (c) => legacyGetFixer(c));

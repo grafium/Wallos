@@ -16,6 +16,14 @@ export interface Env {
   EMAIL_FROM?: string;
   /** Public base URL used in e-mailed links when the admin has not set server_url. */
   APP_URL?: string;
+  /** Optional Workers Rate Limiting binding checked before every login attempt (per client address). */
+  LOGIN_RATE_LIMITER?: RateLimit;
+  /**
+   * OIDC overrides, as in PHP Wallos' environment variables (OIDC_ENABLED,
+   * OIDC_CLIENT_SECRET, OIDC_ISSUER, ...); see src/services/oidc.ts. A field
+   * set here is shown read-only on the admin page.
+   */
+  [oidcVariable: `OIDC_${string}`]: string | undefined;
 }
 
 export interface AuthUser {

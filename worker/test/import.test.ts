@@ -149,3 +149,62 @@ describe("imported data", () => {
     expect(admin).toEqual({ registrations_open: 1, max_users: 10 });
   });
 });
+
+describe("two-factor and OIDC data", () => {
+  const passwordHash = (fixture as unknown as SourceTables).user!.find((u) => u.username === "bob")!.password;
+  const user = (id: number, extra: Record<string, unknown> = {}) => ({ id, username: `tfa${id}`, email: `tfa${id}@example.com`, password: passwordHash, totp_enabled: 0, ...extra });
+  const secret = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
+  const source: SourceTables = {
+    user: [user(50, { totp_enabled: 1 }), user(51, { totp_enabled: 1 }), user(52, { oidc_sub: "same" }), user(53, { oidc_sub: "same" })],
+    totp: [{ user_id: 50, totp_secret: secret, backup_codes: JSON.stringify(["abcdef0123456789abcd", "0123456789abcdef0123"]), last_totp_used: 1_700_000_000 }],
+    oauth_settings: [
+      {
+        id: 1,
+        name: "Authentik",
+        client_id: "cid",
+        client_secret: "a&amp;b",
+        authorization_url: "https://idp.example.com/auth?x=1&y=2",
+        token_url: "https://idp.example.com/token",
+        user_info_url: "https://idp.example.com/me",
+        redirect_url: "https://wallos.example.com/",
+        user_identifier_field: "sub",
+        scopes: "openid email profile",
+        auth_style: "auto",
+        auto_create_user: 1,
+        password_login_disabled: 0,
+        require_email_verified: null,
+      },
+    ],
+  };
+  const imported = buildImport(source);
+
+  it("imports enrolments with hashed backup codes, and repairs the impossible ones", async () => {
+    expect(imported.report.notImported).toEqual({});
+    expect(imported.report.imported).toMatchObject({ user: 4, totp: 1, oauth_settings: 1 });
+    expect(imported.report.warnings.join("\n")).toMatch(/User 51 .* without a usable secret; it was switched off/);
+    expect(imported.report.warnings.join("\n")).toMatch(/User 53 .* shared an OIDC subject/);
+    expect(imported.statements.join("\n")).not.toContain("abcdef0123456789abcd");
+    await env.DB.batch(imported.statements.map((statement) => env.DB.prepare(statement)));
+
+    const flags = await env.DB.prepare("SELECT id, totp_enabled, oidc_sub FROM user WHERE id >= 50 ORDER BY id").all();
+    expect(flags.results).toEqual([
+      { id: 50, totp_enabled: 1, oidc_sub: null },
+      { id: 51, totp_enabled: 0, oidc_sub: null },
+      { id: 52, totp_enabled: 0, oidc_sub: "same" },
+      { id: 53, totp_enabled: 0, oidc_sub: null },
+    ]);
+
+    // The old PHP backup code still opens the account, once.
+    const first = await call("/api/auth/login", { method: "POST", json: { username: "tfa50", password: "bob-pass" } });
+    expect(first.body.two_factor_required).toBe(true);
+    const withCode = await call("/api/auth/login", { method: "POST", json: { username: "tfa50", password: "bob-pass", totp_code: "ABCDEF0123456789ABCD" } });
+    expect(withCode.status).toBe(200);
+    expect((await call("/api/auth/login", { method: "POST", json: { username: "tfa50", password: "bob-pass", totp_code: "abcdef0123456789abcd" } })).status).toBe(401);
+    expect((await call("/api/auth/login", { method: "POST", json: { username: "tfa51", password: "bob-pass" } })).status).toBe(200);
+  });
+
+  it("keeps the provider settings as PHP saved them", async () => {
+    const row = await env.DB.prepare("SELECT client_secret, authorization_url, auto_create_user, require_email_verified FROM oauth_settings WHERE id = 1").first();
+    expect(row).toEqual({ client_secret: "a&amp;b", authorization_url: "https://idp.example.com/auth?x=1&y=2", auto_create_user: 1, require_email_verified: 1 });
+  });
+});

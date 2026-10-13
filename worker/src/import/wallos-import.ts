@@ -1,4 +1,5 @@
 import { isValidDate } from "../lib/dates.ts";
+import { sha256HexSync } from "../lib/sha256-sync.ts";
 
 /*
   Turns the tables of a PHP Wallos SQLite database into SQL statements for
@@ -48,8 +49,6 @@ export interface ImportOptions {
 
 /** Tables handled by later phases; listed so the report can say what was left behind. */
 const LATER_TABLES: Record<string, string> = {
-  totp: "6",
-  oauth_settings: "6",
   total_yearly_cost: "7",
   ai_settings: "7",
   ai_recommendations: "7",
@@ -173,10 +172,24 @@ export function buildImport(source: SourceTables, options: ImportOptions = {}): 
     statements.push("DELETE FROM user;");
   }
 
+  // Two-factor enrolments, read first: an account is only imported with 2FA on
+  // when it has a usable secret, since otherwise no credential could open it.
+  const totpByUser = new Map<number, SourceRow>();
+  for (const row of rows("totp")) {
+    const userId = int(row.user_id);
+    const secret = str(row.totp_secret)?.replace(/\s/g, "").toUpperCase() ?? "";
+    if (userId === null || !/^[A-Z2-7]{16,}=*$/.test(secret)) {
+      count("skipped", "totp");
+      continue;
+    }
+    totpByUser.set(userId, { ...row, totp_secret: secret.replace(/=+$/, "") });
+  }
+
   // Users ---------------------------------------------------------------------
   const userIds = new Set<number>();
   const usernames = new Set<string>();
   const apiKeys = new Set<string>();
+  const oidcSubjects = new Set<string>();
 
   for (const row of rows("user")) {
     const id = int(row.id);
@@ -206,9 +219,19 @@ export function buildImport(source: SourceTables, options: ImportOptions = {}): 
 
     const password = str(row.password) ?? "";
     if (!password) report.warnings.push(`User ${id} ("${username}") has no password and cannot log in until one is set.`);
-    if (flag(row.totp_enabled)) {
-      report.warnings.push(`User ${id} ("${username}") uses two-factor authentication, which returns in phase 6; until then only the password is checked.`);
+    let totpEnabled = flag(row.totp_enabled);
+    if (totpEnabled && !totpByUser.has(id)) {
+      report.warnings.push(`User ${id} ("${username}") had two-factor authentication on without a usable secret; it was switched off.`);
+      totpEnabled = 0;
     }
+    if (!totpEnabled) totpByUser.delete(id);
+
+    let oidcSub = str(row.oidc_sub)?.trim() || null;
+    if (oidcSub && oidcSubjects.has(oidcSub)) {
+      report.warnings.push(`User ${id} ("${username}") shared an OIDC subject with another account; the link was removed and is made again at the next OIDC login by e-mail.`);
+      oidcSub = null;
+    }
+    if (oidcSub) oidcSubjects.add(oidcSub);
 
     const periodType = str(row.budget_period_type);
     const anchor = str(row.budget_period_anchor_date)?.trim() ?? "";
@@ -225,11 +248,11 @@ export function buildImport(source: SourceTables, options: ImportOptions = {}): 
         avatar,
         language: str(row.language) || "en",
         budget: num(row.budget) ?? 0,
-        totp_enabled: flag(row.totp_enabled),
+        totp_enabled: totpEnabled,
         api_key: apiKey,
         firstname: text(row.firstname),
         lastname: text(row.lastname),
-        oidc_sub: str(row.oidc_sub) || null,
+        oidc_sub: oidcSub,
         budget_period_type: periodType && ["weekly", "fortnightly", "monthly"].includes(periodType) ? periodType : "monthly",
         budget_period_anchor_date: isValidDate(anchor) ? anchor : null,
         period_budget: num(row.period_budget) ?? 0,
@@ -237,6 +260,34 @@ export function buildImport(source: SourceTables, options: ImportOptions = {}): 
     );
     userIds.add(id);
     count("imported", "user");
+  }
+
+  for (const [userId, row] of totpByUser) {
+    if (!userIds.has(userId)) {
+      count("skipped", "totp");
+      continue;
+    }
+    let codes: unknown = [];
+    try {
+      codes = JSON.parse(str(row.backup_codes) ?? "[]");
+    } catch {
+      codes = [];
+    }
+    // The Worker keeps only hashes of the backup codes (same scheme as src/services/two-factor.ts).
+    const hashes = (Array.isArray(codes) ? codes : [])
+      .filter((code): code is string | number => typeof code === "string" || typeof code === "number")
+      .map((code) => sha256HexSync(`wallos-backup:${String(code).trim().toLowerCase()}`));
+    statements.push(
+      insert("totp", {
+        user_id: userId,
+        totp_secret: str(row.totp_secret) ?? "",
+        backup_codes: JSON.stringify(hashes),
+        last_totp_used: int(row.last_totp_used) ?? 0,
+        failed_attempts: 0,
+        lockout_until: 0,
+      }),
+    );
+    count("imported", "totp");
   }
 
   if (!userIds.has(1) && userIds.size > 0) {
@@ -267,6 +318,7 @@ export function buildImport(source: SourceTables, options: ImportOptions = {}): 
           server_url: str(admin.server_url),
           login_disabled: flag(admin.login_disabled),
           update_notification: flag(admin.update_notification),
+          oidc_oauth_enabled: flag(admin.oidc_oauth_enabled),
           // Keeping the instance's VAPID keys keeps the browsers' push subscriptions valid.
           vapid_public_key: str(admin.vapid_public_key) ?? "",
           vapid_private_key: str(admin.vapid_private_key) ?? "",
@@ -278,8 +330,46 @@ export function buildImport(source: SourceTables, options: ImportOptions = {}): 
     if (str(admin.smtp_address)) {
       report.warnings.push("The instance SMTP settings were not imported; the Worker sends e-mail through Resend (RESEND_API_KEY, EMAIL_FROM).");
     }
-    if (flag(admin.oidc_oauth_enabled)) report.warnings.push("OIDC login was enabled; it returns in phase 6.");
+    if (flag(admin.oidc_oauth_enabled)) {
+      report.warnings.push("OIDC login is enabled: register this Worker's address as the redirect URL at the provider and check the admin page.");
+    }
     if (flag(admin.login_disabled)) report.warnings.push('"Disable login" is set; the Worker does not support password-less access and ignores it.');
+  }
+
+  // OIDC provider settings (one row) ---------------------------------------------
+  const oauth = rows("oauth_settings").at(-1);
+  // Saved by PHP without HTML escaping, so taken as they are.
+  const raw = (value: unknown) => str(value)?.trim() ?? "";
+  if (oauth) {
+    const style = str(oauth.auth_style) ?? "auto";
+    statements.push(
+      insert(
+        "oauth_settings",
+        {
+          id: 1,
+          name: text(oauth.name),
+          client_id: raw(oauth.client_id),
+          client_secret: raw(oauth.client_secret),
+          authorization_url: raw(oauth.authorization_url),
+          token_url: raw(oauth.token_url),
+          user_info_url: raw(oauth.user_info_url),
+          redirect_url: raw(oauth.redirect_url),
+          logout_url: raw(oauth.logout_url),
+          user_identifier_field: text(oauth.user_identifier_field, "sub") || "sub",
+          scopes: text(oauth.scopes, "openid email profile") || "openid email profile",
+          auth_style: ["auto", "header", "params"].includes(style) ? style : "auto",
+          auto_create_user: flag(oauth.auto_create_user),
+          password_login_disabled: flag(oauth.password_login_disabled),
+          require_email_verified: flag(oauth.require_email_verified, 1),
+        },
+        "INSERT OR REPLACE",
+      ),
+    );
+    count("imported", "oauth_settings");
+    if (rows("oauth_settings").length > 1) count("skipped", "oauth_settings");
+    if (flag(oauth.password_login_disabled)) {
+      report.warnings.push("Password logins are disabled (SSO only): make sure OIDC works on the Worker before relying on it, or set OIDC_DISABLE_PASSWORD_LOGIN=false.");
+    }
   }
 
   // One row per user: settings, custom colours, custom CSS ----------------------

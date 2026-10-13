@@ -9,6 +9,8 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | 3. Értesítések, Resend e-mail, árfolyamok | `bb4b560` | 85 | ✅ |
 | 4. Logók, ikonok, avatarok R2-ben, logókereső | `04bc7ea` | 103 | ✅ |
 | 5. Webes felület (WIP-commitok: `dc7ca44`, `c482d21`, `fd1f024`, `03d2869`, `1b3846f`, `5bb1061`) | `a3c4ec3` | 198 | ✅ |
+| Napló, szabályok, átvétel, füstteszt | `ccef85b` | 198 | ✅ |
+| 6. 2FA (TOTP), OIDC SSO, belépés-korlátozás | lásd git log | 221 | — |
 
 Minden munka 2026-10-13-án készült.
 
@@ -70,3 +72,17 @@ Minden munka 2026-10-13-án készült.
 **Kérés:** „Ments mindent: NAPLO, SZABALYOK, ATVETEL.”
 
 - Elkészült ez a napló, a [SZABALYOK.md](./SZABALYOK.md) (munka- és kódszabályok) és az [ATVETEL.md](./ATVETEL.md) (átadás-átvétel, folytatás). A füstteszt a scratchpadből bekerült a repóba (`scripts/smoke-test.mjs`).
+
+## 6. fázis — haladó hitelesítés
+
+**Kérés:** „6. fázis mehet.”
+
+- Felmérés: a PHP `totp.php`, `endpoints/user/enable_totp.php` / `disable_totp.php`, `login.php`, `includes/oidc_settings.php`, `includes/oidc/*`, `checksession.php`, `logout.php`, az admin OIDC-végpontok és API-k (`get/set_oidc_settings.php`, `set_disable_password_login.php`), valamint a 000027/38/39/47/54 migrációk.
+- `migrations/0006_auth.sql`: `totp`, `oauth_settings` (egy sor), `admin.oidc_oauth_enabled`, egyedi `user.oidc_sub`, `sessions.via_oidc`, `auth_flows` (várakozó 2FA-lépés és OIDC-state), `login_attempts`.
+- `src/lib/totp.ts` (RFC 6238 WebCrypto-val), `src/services/two-factor.ts` (bekapcsolás/kikapcsolás tranzakcióban, zárolás, újrajátszás elleni védelem, hash-elt mentőkódok), `src/services/login-guard.ts` (belépés-korlátozás, belépési lépések), `src/services/oidc.ts` (beállítások `OIDC_*` felülírással és discoveryvel, PKCE-s authorization code flow, fiók-összekötés és -létrehozás, kijelentkezés a szolgáltatónál).
+- Felület: `login.php` (SSO gomb, SSO-only, korlátozás), új `totp.php` és `oidclogin.php`, OIDC-visszatérés bármely oldalra (`src/ui/app.ts`), `logout.php` a szolgáltatónál is kiléptet, admin oldal valós OIDC-adatokkal, a profil 2FA-végpontjai élesek.
+- API: `totp_code` a belépésnél, `/api/me/two-factor/*`, `/api/admin/oidc`, PHP-kompatibilis OIDC admin végpontok, `oidc_oauth_enabled` az admin beállításokban.
+- Importáló: TOTP (hash-elt mentőkódok, a régi kódok működnek), OIDC-beállítások és -azonosítók; ehhez szinkron SHA-256 (`src/lib/sha256-sync.ts`), a WebCrypto-val összevetve tesztelve.
+- Ellenőrzés: 221 teszt, typecheck, `wrangler deploy --dry-run`, böngészős füstteszt (2FA bekapcsolás QR-kóddal, belépés `totp.php`-n, kikapcsolás mentőkóddal).
+- **Hibák menet közben:** a teszt a `/`-t nézte bejelentkezés után, de üres fióknál az átirányít — a profil oldalra cseréltem. A fordítás szövege „Two Factor Authentication is already enabled”, nem a kulcs. A füstteszt a QR-kódot láthatóként várta, de a qrcode.js elrejti a canvas-t — `state: "attached"`.
+- Verzió: 0.6.0.
