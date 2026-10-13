@@ -138,6 +138,18 @@
 
 **Eltérések a PHP-tól:** az API-kulcs a felületen és az API-ban maszkolva (`********`), visszaküldve megmarad; felhasználónként egy AI-beállítás; a heti/havi futás „esedékességre” megy fix nap helyett (az első futás a beállítás után egy órán belül); Ollama/saját szerver csak nyilvános címen; a költségtörténet naponta egy pont, 2 tizedesre kerekítve.
 
+## 2h. Elkészült a 8. fázisban (élesítés előkészítése)
+
+A fiókban végzendő lépésekhez Cloudflare-hozzáférés kell, ezért ezek a megrendelőnél futnak; a repó mindent előkészít hozzájuk:
+
+- **`scripts/setup-cloudflare.ts`** (`npm run setup:cloudflare`): egy újrafuttatható paranccsal D1 és R2 létrehozása vagy megtalálása, az adatbázis-azonosító beírása a `wrangler.jsonc`-be (kommentek megmaradnak), `EMAIL_FROM`/`APP_URL`, migrációk, telepítés, titkok, ellenőrzés; `--dry-run`.
+- **`scripts/check-deployment.ts`** (`npm run check:deployment`): kívülről, módosítás nélkül ellenőrzi az élő Workert (health és verzió, statikus fájlok, belépési oldalak, manifest, API-védelem, biztonsági fejlécek, a mentések nem publikusak).
+- **GitHub Actions** (`.github/workflows/worker-deploy.yaml`): `worker-v*` tagre, `main`-re és kézzel; ellenőrzi a beállításokat, tesztel, migrál, telepít, ellenőriz.
+- **Példányszintű mentés:** heti gzip-pelt SQL-dump az R2-be (`backups/`, 8 megmarad), admin oldali kézi mentés és letöltés, `/api/admin/backups`; visszaállítás `wrangler d1 execute`-tal friss adatbázisba. A D1 Time Travel mellett ez a kimenthető példány.
+- **Konfiguráció:** Workers Logs és source mapek, `workers_dev`, saját domain (`routes`, `custom_domain`) kommentben előkészítve; a parancsok a `DB` binding nevet használják, így adatbázis-csere után is működnek.
+- **[ELESITES.md](./ELESITES.md):** lépésről lépésre útmutató (telepítés, Resend, saját cím, adatátköltöztetés és átállás, biztonság és Cloudflare Access/WAF, mentés és visszaállítás, CI/CD tokenjogosultságokkal, felügyelet, hibaelhárítás, ellenőrzőlista, költségek).
+- **Tesztek:** 240 teszt (dump → adatvesztés → visszatöltés, vasárnapi cron és megőrzés, admin-jogosultság, `wrangler.jsonc`-szerkesztés a valódi fájlon — ez egy hibát is talált: a kommentben szereplő változót írta volna át).
+
 ## 3. Ütemterv
 
 Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőségi sorrend; a 3. és 4. párhuzamosítható.
@@ -152,9 +164,9 @@ Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőség
 | 5 | **Webes felület** ✅ | Workers Static Assets a meglévő CSS/JS/képekhez; az oldalak portolása Hono JSX SSR-re (főoldal/előfizetések, statisztika, naptár, beállítások, profil, admin, belépés/regisztráció); i18n konverzió PHP → JSON; témák, egyedi CSS és színek; PWA manifest + service worker; cookie-s session CSRF-védelemmel, „emlékezz rám” | — | ✅ (lásd 2e) |
 | 6 | **Haladó hitelesítés** ✅ | TOTP 2FA (mentőkódokkal, kizárással); OIDC/OAuth SSO, csak-SSO mód; belépési rate limit | — | ✅ (lásd 2f) |
 | 7 | **Költségtörténet, AI** ✅ | Éves költségtörténet (heti cron) a statisztika-oldal történeti grafikonjához; AI-javaslatok (OpenAI/Gemini/OpenRouter/Ollama/OpenAI-kompatibilis, opcionálisan Workers AI) heti/havi cronnal. (Naptárnézet és iCal feed az 5. fázisban elkészült.) | — | ✅ (lásd 2g) |
-| 8 | Élesítés | Egyedi domain, Cloudflare Access/WAF az admin felülethez; D1 Time Travel + időszakos export R2-be; GitHub Actions (teszt + deploy); monitorozás; átállás a PHP példányról (import, DNS) | 0,5–1 hét | Éles forgalom a Workeren, a PHP példány leállítható |
+| 8 | **Élesítés** — előkészítve ✅ | Egyedi domain, Cloudflare Access/WAF az admin felülethez; D1 Time Travel + időszakos export R2-be; GitHub Actions (teszt + deploy); monitorozás; átállás a PHP példányról (import, DNS) | a fiókban kb. 1–2 óra | Éles forgalom a Workeren, a PHP példány leállítható (a megrendelőnél, ELESITES.md szerint) |
 
-**Funkcióparitás elérve** (a fenti, dokumentált eltérésekkel). **Hátralévő: kb. 0,5–1 hét** – csak a 8. fázis, az élesítés (Cloudflare-fiók, domain, mentések, CI/CD, átállás).
+**Funkcióparitás elérve** (a fenti, dokumentált eltérésekkel), az élesítés előkészítve. **Hátralévő:** a fiókban elvégzendő lépések az [ELESITES.md](./ELESITES.md) szerint (kb. 1–2 óra, plusz az adatátköltöztetés és az ellenőrzőlista).
 
 ### Cron-megfeleltetés
 
@@ -171,6 +183,8 @@ Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőség
 | `generaterecommendations.php` | heti/havi | ✅ óránként, amikor esedékes (legfeljebb 5 felhasználó/óra) |
 
 ## 4. Teendők a Cloudflare-fiókban (egyszeri)
+
+Az egyparancsos változat és a teljes útmutató: [ELESITES.md](./ELESITES.md). Kézzel:
 
 Ezekhez Cloudflare-hozzáférés kell, ebből a környezetből nem futtattam őket:
 

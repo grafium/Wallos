@@ -2,6 +2,7 @@ import type { Env } from "../env";
 import { runReminders } from "../notifications/reminders";
 import { purgeExpiredResets } from "../services/email-flows";
 import { runExchangeRates } from "../services/exchange-rates";
+import { createBackup } from "../services/backup";
 import { runScheduledRecommendations } from "../services/ai";
 import { storeTotalYearlyCost } from "../services/cost-history";
 import { purgeLoginState } from "../services/login-guard";
@@ -18,6 +19,7 @@ import { purgeExpiredSessions, updateNextPayments } from "./update-next-payment"
     hourly                        -> expired login steps and throttle counters
     02:00  updateexchange.php     -> runExchangeRates
     03:00  cleanupresettokens.php -> purgeExpiredResets, old notification log
+    04:00  Sundays (Worker only)  -> createBackup: SQL dump of D1 into R2
 
   Each job is isolated so one failing does not stop the others.
 */
@@ -45,6 +47,10 @@ export async function runScheduled(env: Env, scheduledTime: number): Promise<voi
   await step("loginstate", () => purgeLoginState(env.DB));
   if (hour === 2) {
     await step("updateexchange", () => runExchangeRates(env.DB));
+  }
+  if (hour === 4 && now.getUTCDay() === 0) {
+    // Weekly instance backup: SQL dump into R2 (src/services/backup.ts).
+    await step("backup", () => createBackup(env, { now, scheduled: true }));
   }
   if (hour === 3) {
     await step("resettokens", () => purgeExpiredResets(env.DB));

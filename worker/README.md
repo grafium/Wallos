@@ -16,14 +16,18 @@ npm run typecheck
 
 ## Telepítés
 
+Lépésről lépésre (e-mail, saját domain, adatátköltöztetés, mentés, felügyelet, GitHubról telepítés): **[ELESITES.md](./ELESITES.md)**. Röviden:
+
 ```sh
 npx wrangler login
-npx wrangler d1 create wallos   # database_id → wrangler.jsonc
-npx wrangler r2 bucket create wallos-files
-npm run db:migrate:remote
-npx wrangler secret put RESEND_API_KEY   # e-mail: a Resend API-kulcsa
-npm run deploy
+RESEND_API_KEY=re_xxx npm run setup:cloudflare -- --location eeur --email-from "Wallos <wallos@sajatdomain.hu>" --app-url https://wallos.sajatdomain.hu
+git commit -am "Set the D1 database id"    # a szkript beírta a wrangler.jsonc-be
+npm run check:deployment -- https://wallos.sajatdomain.hu
 ```
+
+A `setup:cloudflare` létrehozza (vagy megtalálja) a D1 adatbázist és az R2 bucketet, lefuttatja a migrációkat, telepít, eltárolja a titkokat és ellenőriz; újrafuttatható, `--dry-run`-nal csak kiírja a parancsokat. Később: `npm run deploy`, vagy `worker-v*` tag pusholása (GitHub Actions, `.github/workflows/worker-deploy.yaml`).
+
+**Mentés.** Vasárnaponként 04:00 UTC-kor a teljes adatbázis SQL-dumpként az R2-be kerül (`backups/`, az utolsó 8 marad); az admin oldalon kézzel is készíthető és letölthető, API: `/api/admin/backups`. Mellette a D1 Time Travel 30 napig bármely percre visszaállít.
 
 **E-mail (Resend).** A `wrangler.jsonc`-ben az `EMAIL_FROM` a feladó (pl. `Wallos <wallos@sajatdomain.hu>`); a domaint a Resendben hitelesíteni kell. Az `APP_URL` (vagy az admin `server_url` beállítása) adja az e-mailben küldött linkek alapját. Kulcs nélkül minden más működik, csak e-mail nem megy ki, és e-mail-megerősítés nem kapcsolható be.
 
@@ -44,7 +48,7 @@ Node 22.18+ kell (beépített `node:sqlite`). A PHP példány `db/wallos.db` fá
 ```sh
 npm run import -- /path/to/wallos.db -o import.sql      # jelentést ír ki: mi jött át, mi maradt ki, figyelmeztetések
 npm run db:migrate:remote                               # üres, migrált adatbázisra
-npx wrangler d1 execute wallos --remote --file import.sql
+npx wrangler d1 execute DB --remote --file import.sql
 ```
 
 - A felhasználók a régi jelszavukkal lépnek be (bcrypt → első belépéskor PBKDF2), az API-kulcsok változatlanok, így a régi integrációk működnek tovább.
@@ -64,7 +68,7 @@ npx wrangler d1 execute wallos --remote --file import.sql
 - Az API-kulcs (`GET /api/me/api-key`, csak sessionből) ugyanígy Bearer tokenként, `X-API-Key` fejlécben, vagy a régi módon `api_key` / `apiKey` paraméterként is használható.
 - **Kétlépcsős azonosítás (TOTP):** a profil oldalon kapcsolható be (QR-kód, 10 egyszer használatos mentőkód), vagy a `/api/me/two-factor` végpontokon. Bekapcsolva a webes belépés a jelszó után a `totp.php` oldalon kéri a kódot; az API-belépésnél a kódot `totp_code` mezőben kell a jelszóval együtt küldeni (nélküle `401` + `two_factor_required: true`). Öt hibás kód után 30 másodpercig zárolt, egy kód csak egyszer használható. Az API-kulcsos hozzáférést (régi integrációk) a 2FA nem érinti, ahogy a PHP-ban sem.
 - **Belépés-korlátozás:** egy címről ugyanarra a felhasználónévre 10, összesen 30 sikertelen belépés után 15 percig nincs több próbálkozás (`429`); jelszó-visszaállítást egy cím 15 percenként legfeljebb 10-szer kérhet. Opcionálisan Workers Rate Limiting is beköthető (`LOGIN_RATE_LIMITER`, lásd `wrangler.jsonc`).
-- **OIDC egyszeri bejelentkezés:** az admin oldalon állítható be (szolgáltató neve, client ID/secret, auth/token/userinfo URL, redirect URL = a Wallos címe, pl. `https://wallos.example.com/`). A belépési oldalon megjelenik a „Login with …” gomb. A fiókot a szolgáltató azonosítója, ennek hiányában a *megerősített* e-mail-cím köti össze; kérésre automatikusan új fiók is létrejöhet. „Disable password login” bekapcsolásával csak SSO-val lehet belépni (űrlap, API és regisztráció is tiltva). Minden mező Worker-változóval is rögzíthető a PHP-s nevekkel (`OIDC_ENABLED`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` titokként, `OIDC_ISSUER` a discoveryhez, `OIDC_DISABLE_PASSWORD_LOGIN` …); ezek az admin oldalon csak olvashatók. **Ha SSO-only módban elromlik a szolgáltató**, a jelszavas belépés visszakapcsolható: `npx wrangler d1 execute wallos --remote --command "UPDATE oauth_settings SET password_login_disabled = 0"`, vagy `OIDC_DISABLE_PASSWORD_LOGIN=false` változóval.
+- **OIDC egyszeri bejelentkezés:** az admin oldalon állítható be (szolgáltató neve, client ID/secret, auth/token/userinfo URL, redirect URL = a Wallos címe, pl. `https://wallos.example.com/`). A belépési oldalon megjelenik a „Login with …” gomb. A fiókot a szolgáltató azonosítója, ennek hiányában a *megerősített* e-mail-cím köti össze; kérésre automatikusan új fiók is létrejöhet. „Disable password login” bekapcsolásával csak SSO-val lehet belépni (űrlap, API és regisztráció is tiltva). Minden mező Worker-változóval is rögzíthető a PHP-s nevekkel (`OIDC_ENABLED`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` titokként, `OIDC_ISSUER` a discoveryhez, `OIDC_DISABLE_PASSWORD_LOGIN` …); ezek az admin oldalon csak olvashatók. **Ha SSO-only módban elromlik a szolgáltató**, a jelszavas belépés visszakapcsolható: `npx wrangler d1 execute DB --remote --command "UPDATE oauth_settings SET password_login_disabled = 0"`, vagy `OIDC_DISABLE_PASSWORD_LOGIN=false` változóval.
 
 ## API
 
@@ -130,6 +134,8 @@ Minden válasz a Wallos-borítékot követi: `{ "success": bool, "title": string
 | GET / POST | `/api/admin/users` | Csak admin: felhasználók listája / új felhasználó (zárt regisztráció mellett is) |
 | DELETE | `/api/admin/users/:id` | Csak admin: felhasználó és minden adatának (képeinek is) törlése (az admin nem törölhető) |
 | POST | `/api/admin/files/cleanup` | Csak admin: a sehol nem használt logófájlok törlése |
+| GET / POST | `/api/admin/backups` | Csak admin: a példány mentéseinek listája / új mentés most |
+| GET | `/api/admin/backups/:name` | Csak admin: egy mentés letöltése (`.sql.gz`) |
 | GET / PATCH | `/api/admin/oidc` | Csak admin: OIDC-beállítások (a client secret `********`-ként jön; visszaküldve megtartja), `oidc_enabled`, a változókkal rögzített mezők (`managed_fields`) és megjegyzések |
 
 ### PHP Wallos kompatibilitás
@@ -150,6 +156,6 @@ src/services/ai.ts   AI-szolgáltatók, javaslatok, kategóriafordítás
 src/ui/              webes felület: oldalak (Hono JSX), endpoints/*.php a PHP JS-éhez, i18n, PWA
 public/              statikus fájlok (generált, build:assets)
 src/import/          PHP Wallos adatbázis → D1 SQL átalakítás
-scripts/             importáló, fájlmásoló, asset-build és i18n-konverter, fixture-generátorok
+scripts/             importáló, fájlmásoló, asset-build, i18n-konverter, Cloudflare-beállító, telepítés-ellenőrző, füstteszt
 test/                Vitest (Workers runtime, helyi D1); fixtures/php-wallos.json valódi PHP-ból
 ```

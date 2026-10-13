@@ -1,7 +1,9 @@
 import { Hono } from "hono";
+import { raw } from "hono/html";
 import type { AppBindings, Env } from "../../env";
 import { ADMIN_USER_ID } from "../../env";
 import { emailConfigured } from "../../lib/email";
+import { BACKUP_RETENTION, listBackups } from "../../services/backup";
 import { LOGO_DIR } from "../../services/files";
 import { maskedSettings, oidcConfiguration, type OidcSettings } from "../../services/oidc";
 import { loadUi, uiPage, type UiCtx } from "../context";
@@ -98,6 +100,7 @@ routes.get("/admin.php", uiPage, async (c: UiCtx) => {
   const mailReady = emailConfigured(c.env);
   const fromEmail = c.env.EMAIL_FROM ?? "";
   const logosToDelete = await countUnusedLogos(c.env);
+  const backups = await listBackups(c.env);
   const oidc = await oidcConfiguration(c.env);
   const oidcSettings = maskedSettings(oidc.settings);
   // oidc_input_attrs(): a field pinned by a variable is shown but cannot be edited.
@@ -377,6 +380,44 @@ routes.get("/admin.php", uiPage, async (c: UiCtx) => {
           <div class="settings-notes">
             <Note>{t("restore_info")}</Note>
           </div>
+        </section>
+
+        <section class="account-section">
+          <header>
+            <h2>Instance backups</h2>
+          </header>
+          <div class="form-group-inline">
+            <input type="button" class="button thin mobile-grow" value={t("backup")} id="createInstanceBackup" onclick="createInstanceBackup()" />
+          </div>
+          {backups.length > 0 && (
+            <ul class="instance-backups">
+              {backups.map((b) => (
+                <li>
+                  <a href={`api/admin/backups/${b.name}`} download>
+                    {b.name}
+                  </a>{" "}
+                  ({Math.max(1, Math.round(b.size / 1024))} KB)
+                </li>
+              ))}
+            </ul>
+          )}
+          <div class="settings-notes">
+            <Note>
+              The whole database is dumped as SQL into the R2 bucket every Sunday at 04:00 UTC; the last {BACKUP_RETENTION} are kept. Restore onto a freshly migrated
+              database with: npx wrangler d1 execute DB --remote --file wallos-DATE.sql (after gunzip). D1 Time Travel also keeps 30 days of history.
+            </Note>
+            <Note icon="fa-triangle-exclamation">Backups contain password hashes, API keys and provider secrets. Keep downloaded copies safe.</Note>
+          </div>
+          <script>
+            {raw(`function createInstanceBackup() {
+  const button = document.getElementById("createInstanceBackup");
+  button.disabled = true;
+  fetch("api/admin/backups", { method: "POST", headers: { "X-CSRF-Token": window.csrfToken } })
+    .then((response) => response.json())
+    .then((data) => { if (data.success) { location.reload(); } else { showErrorMessage(data.message || data.title); button.disabled = false; } })
+    .catch(() => { showErrorMessage(translate("unknown_error")); button.disabled = false; });
+}`)}
+          </script>
         </section>
       </section>
       <script src={asset(ui, "scripts/admin.js")}></script>

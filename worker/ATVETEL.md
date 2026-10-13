@@ -1,6 +1,6 @@
 # Átadás-átvétel — hol tart a projekt, hogyan lehet folytatni
 
-Állapot: **2026-10-13, 0.7.0 verzió, a 7. fázis kész** (`90c1fe1`, CI zöld) – a funkcióparitás elérve (éves költségtörténet, AI-javaslatok); hátra csak az élesítés van. Utolsó mentés: a 7. fázis után, tiszta munkakönyvtárral. Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
+Állapot: **2026-10-13, 0.8.0 verzió, a 8. fázis (élesítés előkészítése) kész** – a kód kész és ellenőrzött; az éles telepítés a megrendelő Cloudflare-fiókjában, az [ELESITES.md](./ELESITES.md) szerint történik. Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
 
 ## 1. Mi működik
 
@@ -16,9 +16,9 @@
 
 | Fázis | Teendő | Hol kell hozzányúlni |
 |---|---|---|
-| 8 | Élesítés | lásd a 3. szakaszt; plusz egyedi domain, Access/WAF, D1 Time Travel + export R2-be, deploy a GitHub Actionsből |
+| 8 | Éles telepítés a fiókban | [ELESITES.md](./ELESITES.md): `npm run setup:cloudflare`, a `wrangler.jsonc` commitolása, Resend, saját domain, adatátköltöztetés, GitHub secrets, ellenőrzőlista |
 
-Hátralévő becslés: kb. 0,5–1 hét, csak az élesítés (ROADMAP 3. szakasz). A 7. fázis kész (ROADMAP 2g); a funkcióparitás megvan, a dokumentált eltérésekkel.
+Hátralévő: csak a fiókban elvégzendő lépések (kb. 1–2 óra, plusz az adatátköltöztetés és az ellenőrzőlista). A kód a 8. fázissal kész (ROADMAP 2h).
 
 ### Nyitott ellenőrzések (tesztkörnyezetben nem próbálható)
 
@@ -29,7 +29,7 @@ Ezek a tesztekben mockolt hívásokkal működnek, valódi szolgáltatóval az �
 - E-mail a Resenden át (jelszó-visszaállítás, értesítés), Web Push egy valódi böngészővel.
 - Árfolyam-frissítés és logókereső élő hálózaton; a cron első hétfői futása (költségtörténet).
 
-## 3. Élesítés (még nem történt meg)
+## 3. Élesítés (még nem történt meg — útmutató: [ELESITES.md](./ELESITES.md))
 
 A Cloudflare-fiókban egyszer kell elvégezni (ebből a környezetből nem futtatható, mert a Cloudflare API elérése tiltott):
 
@@ -71,11 +71,13 @@ Opcionális: a Cloudflare Images binding bekapcsolása (`wrangler.jsonc`, `image
 - **OIDC redirect URL:** a szolgáltatónál a Wallos címét kell visszatérési címként megadni (pl. `https://wallos.example.com/`); a Worker bármely oldalra érkező `?code&state`-et OIDC-visszatérésként kezel.
 - **AI és helyi hálózat:** Ollama vagy saját OpenAI-kompatibilis szerver csak nyilvános címen működik (a Worker nem látja a LAN-t); Cloudflare Tunnel vagy Workers AI (`"ai": { "binding": "AI" }` a `wrangler.jsonc`-ben) a megoldás.
 - **Ütemezett AI:** óránként legfeljebb 5 esedékes felhasználó; sok felhasználónál a heti futás több órán át tart, ez szándékos (egy kérés akár percekig tarthat).
+- `pkill -f "wrangler dev"` a saját parancssort is leállítja, ha az is tartalmazza ezt a szöveget (exit 144); a `wrangler dev` leállítását külön parancsban futtasd.
+- A `setup:cloudflare` a `wrangler.jsonc`-t módosítja (adatbázis-azonosító, változók): utána commitolni kell, különben a GitHubról induló telepítés a helyőrzőn megáll.
 - A füstteszt 2FA-része a második belépésnél megvárja a következő 30 másodperces időlépést, így kb. fél percig tart; `SKIP_2FA=1` kihagyja.
 
 ## 6. Folytatás új sessionben
 
 1. `git fetch origin claude/zen-goldberg-0hbajd && git checkout claude/zen-goldberg-0hbajd`
 2. Olvasd el: `worker/SZABALYOK.md`, `worker/ATVETEL.md` (ez), `worker/ROADMAP.md` 3. szakasz.
-3. `cd worker && npm install && npm run typecheck && npm test` — a kiinduló állapot: 233 zöld teszt.
-4. Javasolt indító üzenet a megrendelőtől: „Mehet a 8. fázis” / „élesítsük” (3. szakasz: Cloudflare-fiók, D1 és R2 létrehozása, titkok, deploy, adatátköltöztetés).
+3. `cd worker && npm install && npm run typecheck && npm test` — a kiinduló állapot: 240 zöld teszt.
+4. A fejlesztés a 8. fázissal lezárult. Ha az éles telepítés közben valami elakad, a hibaüzenettel és az ELESITES.md lépésének számával érdemes folytatni; új funkció új fázisként kerül a ROADMAP-ba.

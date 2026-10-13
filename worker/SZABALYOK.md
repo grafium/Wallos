@@ -10,6 +10,7 @@ Ezek a szabályok a projekt eddigi menetéből és a megrendelő kéréseiből �
    - `npm run typecheck` és `npm test` hibátlan, és a GitHub Actions „Worker” workflow is zöld;
    - a ROADMAP-ban van egy „Elkészült az N. fázisban” szakasz, a táblában ✅, és a hátralévő becslés frissítve van;
    - a README frissítve van (amit a felhasználónak/üzemeltetőnek tudnia kell);
+   - ha a fázis telepítést érint: a `npm run check:deployment` a helyi `wrangler dev` ellen is zöld;
    - a verzió emelve van: `src/version.ts` (`WORKER_VERSION`) és `package.json` (`0.N.0`);
    - a [NAPLO.md](./NAPLO.md) bejegyzést kapott;
    - a végső commit `[skip ci]` nélkül ki van pusholva.
@@ -50,7 +51,8 @@ Ezek a szabályok a projekt eddigi menetéből és a megrendelő kéréseiből �
 6. Minden hivatkozásnál (kategória, deviza, fizetési mód, háztag, helyettesítő előfizetés) ellenőrizzük, hogy az adott felhasználóé-e.
 7. Belépési lépés (2FA, OIDC-state) csak D1-ben, hash-elt tokennel és HttpOnly sütivel tárolható, egyszer használható és lejár (`src/services/login-guard.ts`). Új belépési útvonal a belépés-korlátozáson (`loginAllowed` / `recordLoginFailure`) megy át.
 8. Mentőkódot, tokent csak hash-ként tárolunk; ami visszafejthetőnek kell maradjon (TOTP-titok, OIDC client secret, AI API-kulcs, értesítési tokenek), azt a felület és az API maszkolva (`********`) vagy egyáltalán nem mutatja; a visszaküldött maszk a tárolt értéket tartja meg.
-9. Két összetartozó írás (pl. `totp_enabled` és a `totp` sor) egy `batch`-ben megy, hogy ne maradhasson ellentmondásos állapot.
+9. Telepítési parancsok a `DB` binding nevet használják (`wrangler d1 … DB`), nem az adatbázis nevét. Mentés (dump, letöltött fájl) titkot tartalmaz: csak a nem publikus `backups/` alatt, admin-jogosultsággal érhető el.
+10. Két összetartozó írás (pl. `totp_enabled` és a `totp` sor) egy `batch`-ben megy, hogy ne maradhasson ellentmondásos állapot.
 
 ## 5. Kód
 

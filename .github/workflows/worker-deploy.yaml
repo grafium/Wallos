@@ -1,0 +1,70 @@
+name: Worker deploy
+
+# Deploys worker/ to Cloudflare. Needs the repository secrets
+# CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the real database_id in
+# worker/wrangler.jsonc (scripts/setup-cloudflare.ts writes it), and
+# optionally the repository variable WALLOS_URL for the post-deploy check.
+# See worker/ELESITES.md.
+#
+# Runs on a "worker-v*" tag (e.g. worker-v0.8.0) pushed on any branch, on
+# pushes to main that touch worker/, and by hand (Actions > Worker deploy).
+
+on:
+  push:
+    branches: [main]
+    tags: ["worker-v*"]
+    paths: ["worker/**", ".github/workflows/worker-deploy.yaml"]
+  workflow_dispatch:
+    inputs:
+      migrate:
+        description: "Apply D1 migrations before deploying"
+        type: boolean
+        default: true
+
+concurrency:
+  group: worker-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: worker
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - name: Check that the repository is set up for deploying
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Set the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets (worker/ELESITES.md)."
+            exit 1
+          fi
+          if grep -q '"database_id": "00000000-0000-0000-0000-000000000000"' wrangler.jsonc; then
+            echo "::error::wrangler.jsonc still has the placeholder database_id; run scripts/setup-cloudflare.ts once and commit the change."
+            exit 1
+          fi
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: Apply D1 migrations
+        if: github.event_name != 'workflow_dispatch' || inputs.migrate
+        run: npx wrangler d1 migrations apply DB --remote
+
+      - name: Deploy
+        run: npm run deploy
+
+      - name: Check the deployed Worker
+        if: vars.WALLOS_URL != ''
+        run: node scripts/check-deployment.ts "${{ vars.WALLOS_URL }}" --version "$(node -p "require('./package.json').version")"

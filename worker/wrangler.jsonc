@@ -4,7 +4,16 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
+  // Workers Logs (dashboard: Workers & Pages > wallos > Logs) and readable stack traces.
   "observability": { "enabled": true },
+  "upload_source_maps": true,
+
+  // The free https://wallos.<account>.workers.dev address. With a custom domain
+  // below it can be switched off ("workers_dev": false).
+  "workers_dev": true,
+  // A custom domain on a zone in the same Cloudflare account (DNS and the
+  // certificate are created on deploy). Then also set APP_URL below.
+  // "routes": [{ "pattern": "wallos.example.com", "custom_domain": true }],
 
   // The web interface's stylesheets, scripts, fonts and images, copied from
   // the PHP repository by scripts/build-assets.ts. A matching file is served

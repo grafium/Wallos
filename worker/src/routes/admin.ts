@@ -6,6 +6,7 @@ import { fail, ok, parseId, readBody, validationFailed } from "../lib/http";
 import { flag, registerSchema } from "../lib/schemas";
 import { emailConfigured } from "../lib/email";
 import { registerUser } from "../services/accounts";
+import { createBackup, getBackup, listBackups } from "../services/backup";
 import { deleteUnusedLogos, deleteUserAccount } from "../services/files";
 import { maskedSettings, oidcConfiguration, OidcSettingsError, saveOidcSettings, setOidcEnabled, type OidcSettings } from "../services/oidc";
 
@@ -171,3 +172,24 @@ export async function disablePasswordLoginHandler(c: Ctx, body: Record<string, u
 
 adminRoutes.get("/oidc", (c) => oidcSettingsHandler(c));
 adminRoutes.patch("/oidc", async (c) => updateOidcSettingsHandler(c, await readBody(c)));
+
+// --- instance backups (src/services/backup.ts) -------------------------------------------
+
+adminRoutes.get("/backups", async (c) => ok(c, "backups", { backups: await listBackups(c.env) }));
+
+adminRoutes.post("/backups", async (c) => {
+  const backup = await createBackup(c.env);
+  return ok(c, "Backup created", { backup }, 201);
+});
+
+adminRoutes.get("/backups/:name", async (c) => {
+  const object = await getBackup(c.env, c.req.param("name"));
+  if (!object) return fail(c, 404, "Not found", "No such backup.");
+  return new Response(object.body, {
+    headers: {
+      "content-type": "application/gzip",
+      "content-disposition": `attachment; filename="${c.req.param("name")}"`,
+      "cache-control": "no-store",
+    },
+  });
+});

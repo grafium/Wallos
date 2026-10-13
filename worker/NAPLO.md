@@ -1,6 +1,6 @@
 # Munkanapló — Wallos → Cloudflare Workers + D1
 
-Időrendben: mit kért a megrendelő, mi készült el, milyen döntések születtek, és milyen hibákba futottunk bele. Ág: `claude/zen-goldberg-0hbajd` (PR-t nem nyitottunk). A részletes tartalmat lásd: [ROADMAP.md](./ROADMAP.md) (2.–2g. szakasz) és [README.md](./README.md).
+Időrendben: mit kért a megrendelő, mi készült el, milyen döntések születtek, és milyen hibákba futottunk bele. Ág: `claude/zen-goldberg-0hbajd` (PR-t nem nyitottunk). A részletes tartalmat lásd: [ROADMAP.md](./ROADMAP.md) (2.–2h. szakasz) és [ELESITES.md](./ELESITES.md) és [README.md](./README.md).
 
 | Fázis | Commit | Tesztek | CI |
 |---|---|---|---|
@@ -15,6 +15,8 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | Mentés a 6. fázis után | `27d5a06` | 221 | ✅ |
 | 7. Éves költségtörténet, AI-javaslatok | `90c1fe1` | 233 | ✅ |
 | Napló: 7. fázis commitja és CI-eredménye | `160e2f5` | 233 | ✅ |
+| Mentés a 7. fázis után | `d0f9248` | 233 | ✅ |
+| 8. Élesítés előkészítése (mentés, beállító, CI/CD, útmutató) | lásd git log | 240 | — |
 
 Minden munka 2026-10-13-án készült.
 
@@ -116,3 +118,16 @@ Minden munka 2026-10-13-án készült.
 
 - A három dokumentum a 7. fázissal már frissült (`90c1fe1`, CI-eredmény a `160e2f5`-ben, annak CI-je is zöld). Most ez a bejegyzés, és az ATVETEL-be a nyitott ellenőrzések listája került (amit tesztkörnyezetben nem lehetett kipróbálni).
 - Állapot a mentéskor: 0.7.0, 233 zöld teszt, CI zöld, munkakönyvtár tiszta, funkcióparitás elérve. Következő lépés: 8. fázis (élesítés) a megrendelő Cloudflare-fiókjával.
+
+## 8. fázis — élesítés előkészítése
+
+**Kérés:** „8. fázis mehet.”
+
+- Korlát: ebből a környezetből a Cloudflare-fiók nem érhető el (nincs hozzáférés, a `*.cloudflare.com` hálózatilag tiltott), ezért a fiókban futó lépések a megrendelőnél maradnak; a repó minden mást előkészít és automatizál.
+- `src/services/backup.ts`: a teljes D1 gzip-pelt SQL-dumpja az R2 `backups/` alá (INSERT OR REPLACE, létrehozási sorrend, `defer_foreign_keys`, a belépési állapot és az értesítési napló nélkül), vasárnap 04:00 UTC cron, 8 megőrzése, admin API (`/api/admin/backups`) és az admin oldalon lista, letöltés, kézi mentés.
+- `scripts/setup-cloudflare.ts` (`npm run setup:cloudflare`), `scripts/lib/wrangler-config.ts` (kommentmegtartó `wrangler.jsonc`-szerkesztés), `scripts/check-deployment.ts` (`npm run check:deployment`), `.github/workflows/worker-deploy.yaml` (tag / main / kézi; teszt, migráció, telepítés, ellenőrzés).
+- `wrangler.jsonc`: source mapek, `workers_dev`, saját domain kommentben; a parancsok a `DB` binding nevet használják (adatbázis-csere után is jók).
+- `ELESITES.md`: a teljes útmutató.
+- Ellenőrzés: 240 teszt, typecheck, `wrangler deploy --dry-run`, a beállító `--dry-run`-ja, az ellenőrző szkript a helyi `wrangler dev` ellen (8/8 zöld).
+- **Hibák menet közben:** a `setVar` a `wrangler.jsonc` kommentjében szereplő `"OIDC_ENABLED"`-et írta volna át — a teszt a valódi fájlon fogta meg, javítva. A visszaállítási útmutató első változata az új adatbázist névvel (`wallos-restore`) migrálta volna, amit a wrangler a konfigurációban nem talál — átállítva a `DB` binding névre. A `?raw` import típusdeklarációja modulfájlban hatástalan volt — külön `test/raw.d.ts`. A `pkill -f "wrangler dev"` a saját parancssort is leállítja (exit 144) — a parancsokat ezért külön kell futtatni.
+- Verzió: 0.8.0.
