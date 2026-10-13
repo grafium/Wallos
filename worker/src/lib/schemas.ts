@@ -48,7 +48,8 @@ export const subscriptionFields = {
   category_id: id,
   notes: text(10_000),
   url: httpUrl,
-  logo: text(2048),
+  // A stored file name (see POST /api/subscriptions/:id/logo), or "" for none.
+  logo: z.string().trim().max(255).regex(/^$|^[A-Za-z0-9][A-Za-z0-9._-]*$/, "Expected a stored logo file name"),
   notify: flag,
   // -1 means "use the default from the notification settings".
   notify_days_before: z.coerce.number().int().min(-1).max(366),
@@ -115,7 +116,8 @@ export const householdSchema = z.object({
 
 export const paymentMethodSchema = z.object({
   name: text(255).min(1),
-  icon: text(2048).optional(),
+  // A built-in icon (images/uploads/icons/x.png) or one uploaded with POST /api/payment-methods/:id/icon.
+  icon: z.string().trim().max(255).regex(/^images\/uploads\/icons\/[A-Za-z0-9._-]+$|^[A-Za-z0-9][A-Za-z0-9._-]*$/, "Expected a built-in or uploaded icon").optional(),
   enabled: flag.optional(),
   order: z.coerce.number().int().min(0).optional(),
 });
@@ -144,7 +146,8 @@ export const profileSchema = z
     email: z.email().max(255),
     language: z.enum(LANGUAGES),
     main_currency: id,
-    avatar: text(2048),
+    // A built-in avatar (images/avatars/N.svg) or one uploaded with POST /api/me/avatar.
+    avatar: z.string().trim().max(255).regex(/^images\/avatars\/\d+\.svg$|^images\/uploads\/logos\/avatars\/[A-Za-z0-9][A-Za-z0-9._-]*$/, "Expected a built-in or uploaded avatar"),
     timezone: z
       .string()
       .trim()

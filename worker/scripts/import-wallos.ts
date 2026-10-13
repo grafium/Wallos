@@ -79,7 +79,7 @@ if (Object.keys(report.notImported).length) {
 }
 const files = report.files.logos.length + report.files.avatars.length;
 if (files) {
-  console.log(`\n${report.files.logos.length} logo(s) and ${report.files.avatars.length} avatar(s) are referenced; copy images/uploads/ along (phase 4 moves them to R2).`);
+  console.log(`\n${report.files.logos.length} logo(s) and ${report.files.avatars.length} avatar(s) are referenced; copy them to R2 with: node scripts/upload-files.ts <wallos directory>`);
 }
 if (report.warnings.length) {
   console.log(`\nWarnings (${report.warnings.length}):`);

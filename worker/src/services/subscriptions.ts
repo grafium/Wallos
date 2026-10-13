@@ -30,6 +30,9 @@ export interface SubscriptionRow {
 }
 
 export interface EnrichedSubscription extends SubscriptionRow {
+  /** Where the logo is served, e.g. "/images/uploads/logos/123-netflix.png". */
+  logo_path: string | null;
+  logo_variant_path: string | null;
   category_name: string;
   payer_user_name: string;
   payment_method_name: string;
@@ -94,6 +97,8 @@ function enrich(row: SubscriptionRow, lookups: Lookups, convertTo: number | null
   return {
     ...row,
     price,
+    logo_path: row.logo ? `/images/uploads/logos/${row.logo}` : null,
+    logo_variant_path: row.logo_variant ? `/images/uploads/logos/${row.logo_variant}` : null,
     category_name: lookups.categories.get(row.category_id ?? -1) ?? "No category",
     payer_user_name: lookups.members.get(row.payer_user_id ?? -1) ?? "Unknown member",
     payment_method_name: lookups.paymentMethods.get(row.payment_method_id ?? -1) ?? "Unknown payment method",

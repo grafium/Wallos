@@ -2,8 +2,11 @@ import { Hono, type Context } from "hono";
 import type { AppBindings } from "../env";
 import { fail, ok, parseId, readBody, validationFailed } from "../lib/http";
 import { createSubscriptionSchema, updateSubscriptionSchema } from "../lib/schemas";
+import { deleteLogosIfUnused, UploadError } from "../services/files";
+import { imageFromBody, setSubscriptionLogo, storeLogoImage } from "./uploads";
 import {
   cloneSubscription,
+  findSubscription,
   createSubscription,
   deleteSubscription,
   getSubscription,
@@ -37,23 +40,55 @@ function referenceFailure(c: Ctx, error: ReferenceError) {
   return fail(c, 400, "Invalid parameter", error.message, { fields: error.fields });
 }
 
-export async function createHandler(c: Ctx, body: Record<string, unknown>) {
-  const parsed = createSubscriptionSchema.safeParse(body);
-  if (!parsed.success) return validationFailed(c, parsed.error);
+/**
+ * A logo sent along with a subscription: a multipart "logo" file or a
+ * "logo_url". Like PHP, a logo that cannot be saved does not stop the
+ * subscription from being saved; the answer carries a logo_warning instead.
+ */
+async function attachLogo(c: Ctx, body: Record<string, unknown>, subscriptionId: number, name: string): Promise<string | null> {
   try {
-    const id = await createSubscription(c.env.DB, c.get("user"), parsed.data);
-    const subscription = await getSubscription(c.env.DB, c.get("user"), id);
-    return ok(c, "Subscription added", { subscriptionId: id, subscription, message: "Subscription added successfully." }, 201);
+    const bytes = await imageFromBody(body, "logo", ["logo_url"]);
+    if (!bytes) return null;
+    const logo = await storeLogoImage(c.env, c.get("user").id, bytes, "logo", name);
+    await setSubscriptionLogo(c.env, c.get("user").id, subscriptionId, logo);
+    return null;
   } catch (error) {
-    if (error instanceof ReferenceError) return referenceFailure(c, error);
+    if (error instanceof UploadError) return error.message;
     throw error;
   }
 }
 
+/** The body without an uploaded logo file, which the schema would reject as a non-string. */
+function withoutFile(body: Record<string, unknown>) {
+  const { logo, ...rest } = body;
+  return logo instanceof File ? rest : body;
+}
+
+export async function createHandler(c: Ctx, body: Record<string, unknown>) {
+  const parsed = createSubscriptionSchema.safeParse(withoutFile(body));
+  if (!parsed.success) return validationFailed(c, parsed.error);
+  let id: number;
+  try {
+    id = await createSubscription(c.env.DB, c.get("user"), parsed.data);
+  } catch (error) {
+    if (error instanceof ReferenceError) return referenceFailure(c, error);
+    throw error;
+  }
+  const logoWarning = await attachLogo(c, body, id, parsed.data.name);
+  const subscription = await getSubscription(c.env.DB, c.get("user"), id);
+  return ok(
+    c,
+    "Subscription added",
+    { subscriptionId: id, subscription, message: "Subscription added successfully.", ...(logoWarning ? { logo_warning: logoWarning } : {}) },
+    201,
+  );
+}
+
 export async function updateHandler(c: Ctx, id: number | null, body: Record<string, unknown>) {
   if (id === null) return fail(c, 400, "Missing parameter", 'Parameter "id" (or "subscriptionId") is required.');
-  const parsed = updateSubscriptionSchema.safeParse(body);
+  const parsed = updateSubscriptionSchema.safeParse(withoutFile(body));
   if (!parsed.success) return validationFailed(c, parsed.error);
+  const before = await findSubscription(c.env.DB, c.get("user").id, id);
   try {
     const found = await updateSubscription(c.env.DB, c.get("user"), id, parsed.data);
     if (!found) return fail(c, 404, "Subscription not found", "Subscription not found or does not belong to you.");
@@ -61,14 +96,27 @@ export async function updateHandler(c: Ctx, id: number | null, body: Record<stri
     if (error instanceof ReferenceError) return referenceFailure(c, error);
     throw error;
   }
+  // A logo name set by hand replaces the file, and its themed variant no longer matches.
+  if (before && parsed.data.logo !== undefined && parsed.data.logo !== before.logo) {
+    await c.env.DB.prepare("UPDATE subscriptions SET logo_variant = NULL, logo_text_color = NULL WHERE id = ?").bind(id).run();
+    await deleteLogosIfUnused(c.env, [before.logo, before.logo_variant]);
+  }
+  const logoWarning = await attachLogo(c, body, id, parsed.data.name ?? before?.name ?? "logo");
   const subscription = await getSubscription(c.env.DB, c.get("user"), id);
-  return ok(c, "Subscription updated", { subscriptionId: id, subscription, message: "Subscription updated successfully." });
+  return ok(c, "Subscription updated", {
+    subscriptionId: id,
+    subscription,
+    message: "Subscription updated successfully.",
+    ...(logoWarning ? { logo_warning: logoWarning } : {}),
+  });
 }
 
 export async function deleteHandler(c: Ctx, id: number | null) {
   if (id === null) return fail(c, 400, "Missing parameter", 'Parameter "id" (or "subscriptionId") is required.');
+  const before = await findSubscription(c.env.DB, c.get("user").id, id);
   const deleted = await deleteSubscription(c.env.DB, c.get("user").id, id);
   if (!deleted) return fail(c, 404, "Subscription not found", "Subscription not found or does not belong to you.");
+  await deleteLogosIfUnused(c.env, [before?.logo, before?.logo_variant]);
   return ok(c, "Subscription deleted", { subscriptionId: id, message: "Subscription deleted successfully." });
 }
 

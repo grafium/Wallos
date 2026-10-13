@@ -8,10 +8,12 @@ import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
 import { exchangeRateRoutes } from "./routes/exchange-rates";
 import { legacyRoutes } from "./routes/legacy";
+import { logoRoutes } from "./routes/logos";
 import { categories, currencies, household, paymentMethods } from "./routes/lookups";
 import { meRoutes } from "./routes/me";
 import { notificationRoutes } from "./routes/notifications";
 import { pageRoutes } from "./routes/pages";
+import { fileRoutes, uploadRoutes } from "./routes/uploads";
 import { statsRoutes } from "./routes/stats";
 import { subscriptionRoutes } from "./routes/subscriptions";
 import { WALLOS_COMPAT_VERSION, WORKER_VERSION } from "./version";
@@ -36,6 +38,7 @@ app.get("/api/health", async (c) => {
 
 app.route("/api/auth", authRoutes);
 app.route("/", pageRoutes);
+app.route("/", fileRoutes);
 
 // Everything below requires a session token or an API key.
 const api = new Hono<AppBindings>();
@@ -43,6 +46,7 @@ api.use("*", requireAuth);
 // The PHP-compatible *.php paths go first so "/subscriptions/:id" does not
 // swallow "/subscriptions/get_subscriptions.php".
 api.route("/", legacyRoutes);
+api.route("/", uploadRoutes);
 api.route("/me", meRoutes);
 api.route("/subscriptions", subscriptionRoutes);
 api.route("/categories", categories.routes);
@@ -53,6 +57,7 @@ api.route("/stats", statsRoutes);
 api.route("/admin", adminRoutes);
 api.route("/notifications", notificationRoutes);
 api.route("/exchange-rates", exchangeRateRoutes);
+api.route("/logos", logoRoutes);
 api.get("/cycles", async (c) => {
   const cycles = await c.env.DB.prepare("SELECT id, days, name FROM cycles ORDER BY id").all();
   return ok(c, "cycles", { cycles: cycles.results, notes: [] });

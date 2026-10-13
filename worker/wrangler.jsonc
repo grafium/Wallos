@@ -17,6 +17,13 @@
     }
   ],
 
+  // Uploaded logos, icons and avatars. Create with: npx wrangler r2 bucket create wallos-files
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "wallos-files" }],
+
+  // Optional: resize uploads with Cloudflare Images (needs Images enabled on
+  // the account). Without it images are stored as uploaded.
+  // "images": { "binding": "IMAGES" },
+
   // One hourly trigger. Reminders go out at 09:00 (payments) and 08:00
   // (cancellations) in each user's own timezone; the daily jobs run at 01:00
   // (next payment dates) and 02:00 (exchange rates) UTC. See src/cron/.

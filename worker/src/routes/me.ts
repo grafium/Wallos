@@ -4,6 +4,7 @@ import { ADMIN_USER_ID } from "../env";
 import { hashPassword, randomToken, sha256Hex, verifyPassword } from "../lib/crypto";
 import { fail, ok, readBody, validationFailed } from "../lib/http";
 import { budgetSchema, passwordSchema, profileSchema, settingsSchema } from "../lib/schemas";
+import { deleteAvatarIfUnused } from "../services/files";
 import { getSettings, updateSettings } from "../services/settings";
 import { WORKER_VERSION } from "../version";
 
@@ -80,11 +81,15 @@ meRoutes.patch("/", async (c) => {
   }
 
   const entries = Object.entries(parsed.data).filter(([, value]) => value !== undefined);
+  const oldAvatar = parsed.data.avatar !== undefined
+    ? (await c.env.DB.prepare("SELECT avatar FROM user WHERE id = ?").bind(user.id).first<{ avatar: string | null }>())?.avatar
+    : null;
   if (entries.length > 0) {
     await c.env.DB.prepare(`UPDATE user SET ${entries.map(([key]) => `${key} = ?`).join(", ")} WHERE id = ?`)
       .bind(...entries.map(([, value]) => value), user.id)
       .run();
   }
+  if (oldAvatar && oldAvatar !== parsed.data.avatar) await deleteAvatarIfUnused(c.env, oldAvatar);
   return ok(c, "Profile updated", { user: await profile(c) });
 });
 

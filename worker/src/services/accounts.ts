@@ -47,8 +47,8 @@ export async function registerUser(db: D1Database, input: RegisterInput): Promis
   await db.batch([
     db
       .prepare(
-        `INSERT INTO user (username, firstname, lastname, email, password, language, budget, api_key, budget_period_anchor_date)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, ?7, date('now'))`,
+        `INSERT INTO user (username, firstname, lastname, email, password, language, budget, api_key, budget_period_anchor_date, avatar)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, ?7, date('now'), 'images/avatars/0.svg')`,
       )
       .bind(input.username, input.firstname, input.lastname, input.email, passwordHash, input.language, apiKey),
     db.prepare(`INSERT INTO household (name, user_id) VALUES (?1, ${userId})`).bind(input.username),

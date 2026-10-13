@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import type { z } from "zod";
 import type { AppBindings } from "../env";
 import { fail, ok, parseId, readBody, validationFailed } from "../lib/http";
+import { deleteLogosIfUnused } from "../services/files";
 import { categorySchema, currencySchema, householdSchema, paymentMethodSchema } from "../lib/schemas";
 
 /*
@@ -26,6 +27,8 @@ interface LookupConfig {
   protect?: (c: Ctx, id: number) => Promise<string | null>;
   /** Extra top-level fields for the list response. */
   listExtras?: (c: Ctx) => Record<string, unknown>;
+  /** Runs after a row was deleted, with the row as it was. */
+  onDeleted?: (c: Ctx, row: Record<string, unknown>) => Promise<void>;
 }
 
 const quote = (column: string) => `"${column}"`;
@@ -94,6 +97,7 @@ function lookupRoutes(config: LookupConfig) {
     const reason = await config.protect?.(c, id);
     if (reason) return fail(c, 409, "Protected", reason);
     await c.env.DB.prepare(`DELETE FROM ${config.table} WHERE id = ? AND user_id = ?`).bind(id, c.get("user").id).run();
+    await config.onDeleted?.(c, row);
     return ok(c, `${config.title} removed`, { id });
   });
 
@@ -131,6 +135,8 @@ export const paymentMethods = lookupRoutes({
   orderBy: 't."order", t.id',
   refColumn: "payment_method_id",
   schema: paymentMethodSchema,
+  // An uploaded icon goes with the payment method.
+  onDeleted: (c, row) => deleteLogosIfUnused(c.env, [row.icon as string | null]),
 });
 
 export const currencies = lookupRoutes({

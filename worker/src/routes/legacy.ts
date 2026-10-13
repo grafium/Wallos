@@ -46,16 +46,19 @@ legacyRoutes.on(["GET", "POST"], "/subscriptions/get_subscription.php", async (c
 legacyRoutes.on(["GET", "POST"], "/subscriptions/get_monthly_cost.php", async (c) => monthlyCostHandler(c, await requestParams(c)));
 
 legacyRoutes.post("/subscriptions/set_subscriptions.php", async (c) => {
-  const params = await requestParams(c);
+  const body = await readBody(c);
+  // Strings as $_REQUEST had them, plus an uploaded "logo" file ($_FILES).
+  const params: Record<string, unknown> = { ...(await requestParams(c)), ...(body.logo instanceof File ? { logo: body.logo } : {}) };
   // PHP accepted "notifications" as an alias of "notify".
   if (params.notify === undefined && params.notifications !== undefined) params.notify = params.notifications;
+  const ids = params as Record<string, string>;
   switch (params.action) {
     case "add":
       return createHandler(c, params);
     case "edit":
-      return updateHandler(c, subscriptionId(params), params);
+      return updateHandler(c, subscriptionId(ids), params);
     case "delete":
-      return deleteHandler(c, subscriptionId(params));
+      return deleteHandler(c, subscriptionId(ids));
     default:
       return fail(c, 400, "Invalid action", 'Action must be "add", "edit", or "delete".');
   }

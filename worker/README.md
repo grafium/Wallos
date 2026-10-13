@@ -2,7 +2,7 @@
 
 A Wallos előfizetés-követő Cloudflare Workers + D1 változata. A felmérést és az ütemtervet lásd: [ROADMAP.md](./ROADMAP.md).
 
-Jelenleg (3. fázis után) egy JSON API: fiókok, profil és beállítások, előfizetések, kategóriák, háztartás, fizetési módok, devizák, statisztika és költségvetés, admin, export, értesítések 11 csatornán, e-mail (Resend), árfolyam-frissítés, valamint a PHP Wallos `api/**/*.php` végpontjai kompatibilis formában. Egy meglévő PHP Wallos adatbázis importálható.
+Jelenleg (4. fázis után) egy JSON API: fiókok, profil és beállítások, előfizetések, kategóriák, háztartás, fizetési módok, devizák, statisztika és költségvetés, admin, export, értesítések 11 csatornán, e-mail (Resend), árfolyam-frissítés, logók/ikonok/avatarok R2-ben és logókereső, valamint a PHP Wallos `api/**/*.php` végpontjai kompatibilis formában. Egy meglévő PHP Wallos adatbázis importálható.
 
 ## Fejlesztés
 
@@ -19,12 +19,15 @@ npm run typecheck
 ```sh
 npx wrangler login
 npx wrangler d1 create wallos   # database_id → wrangler.jsonc
+npx wrangler r2 bucket create wallos-files
 npm run db:migrate:remote
 npx wrangler secret put RESEND_API_KEY   # e-mail: a Resend API-kulcsa
 npm run deploy
 ```
 
 **E-mail (Resend).** A `wrangler.jsonc`-ben az `EMAIL_FROM` a feladó (pl. `Wallos <wallos@sajatdomain.hu>`); a domaint a Resendben hitelesíteni kell. Az `APP_URL` (vagy az admin `server_url` beállítása) adja az e-mailben küldött linkek alapját. Kulcs nélkül minden más működik, csak e-mail nem megy ki, és e-mail-megerősítés nem kapcsolható be.
+
+**Képek.** A feltöltött logók, ikonok és avatarok a `wallos-files` R2 bucketbe kerülnek, és a PHP-val azonos címen érhetők el (`/images/uploads/logos/...`). Ha a fiókban be van kapcsolva a Cloudflare Images, a `wrangler.jsonc`-ben az `images` binding bekapcsolásával a feltöltések PNG-re alakulnak és átméreteződnek (logó 270×84, ikon 140×96, avatar 160×160); nélküle az eredeti fájl kerül tárolásra (max. 5 MB, PNG/JPEG/GIF/WebP/AVIF; SVG nem). A háttéreltávolítás és a sötét/világos témához készülő logóvariáns PNG-képeken mindkét esetben működik.
 
 **Cron.** Óránként fut egy trigger: az emlékeztetők a felhasználó saját időzónája szerint 09:00-kor (fizetés) és 08:00-kor (lemondás) mennek ki, a napi feladatok UTC 01:00 (következő fizetési dátumok), 02:00 (árfolyamok) és 03:00 (takarítás) órakor futnak. Az ingyenes Workers csomag egy cron-futásban 50 kimenő hívást enged; sok felhasználónál vagy csatornánál a fizetős csomag kell.
 
@@ -45,6 +48,10 @@ npx wrangler d1 execute wallos --remote --file import.sql
 - Javítja a hibás adatokat: szöveges árfolyamok, üres/hibás dátumok, árva sorok, duplikált beállítások, kis-nagybetűre ütköző felhasználónevek, duplikált API-kulcsok, lógó helyettesítő előfizetések. Mindről figyelmeztetést ír.
 - `--replace`: az importálás előtt törli a meglévő felhasználókat és minden adatukat.
 - Az értesítési beállítások (mind a 11 csatorna), a push-feliratkozások a VAPID-kulcsokkal, az árfolyam-szolgáltató és -kulcs is átjön. A felhasználónkénti SMTP helyett az e-mail a példány Resend-feladóján megy; a „TLS-hiba figyelmen kívül hagyása” opció megszűnik (a Worker mindig ellenőrzi a tanúsítványt).
+- A képfájlok (logók, feltöltött ikonok, avatarok) ugyanazon az útvonalon kerülnek R2-be, így az adatbázisban tárolt nevek változatlanul működnek:
+  ```sh
+  node scripts/upload-files.ts /path/to/wallos      # a PHP telepítés könyvtára; --dry-run: csak listáz
+  ```
 - Még nem jön át (jelentésben látszik, melyik fázisban jön): TOTP, OIDC, AI-beállítások, éves költségtörténet. A logó- és avatarfájlokat (`images/uploads/`) a 4. fázis viszi R2-be.
 
 ## Hitelesítés
@@ -93,11 +100,18 @@ Minden válasz a Wallos-borítékot követi: `{ "success": bool, "title": string
 | GET | `/api/notifications/preview?kind=payment\|cancellation&date=` | Mit küldene a cron az adott napon (küldés nélkül) |
 | GET | `/api/notifications/push/public-key` | VAPID publikus kulcs a böngészős feliratkozáshoz |
 | POST / DELETE | `/api/notifications/push/subscriptions` | Böngésző push-feliratkozása (`endpoint`, `keys.p256dh`, `keys.auth`) |
+| POST / DELETE | `/api/subscriptions/:id/logo` | Logó feltöltése (multipart `logo` fájl) vagy letöltése URL-ről (`url`); törlése. Létrehozáskor/módosításkor is küldhető `logo` fájl vagy `logo_url`. A válaszban `logo_path` és `logo_variant_path` mutatja a címet |
+| POST | `/api/payment-methods/:id/icon` | Fizetési mód ikonja (multipart `icon` vagy `url`) |
+| POST / DELETE | `/api/me/avatar` | Avatar feltöltése (multipart `avatar` vagy `url`) / visszaállítása az alapértelmezettre |
+| GET | `/api/logos/search?q=&source=` | Logókeresés: `all` (DuckDuckGo → Brave → ikonkatalógusok), `duckduckgo`, `brave`, `google` (SerpAPI-kulccsal), `icons` (selfh.st, Dashboard Icons) |
+| GET / PUT | `/api/logos/google-key` | SerpAPI-kulcs a Google-kereséshez (`""` törli) |
+| GET | `/images/uploads/logos/:name`, `/images/uploads/logos/avatars/:name` | A tárolt képek (nyilvános, a PHP-val azonos címen) |
 | GET / PUT | `/api/exchange-rates` | Árfolyam-szolgáltató: `provider` 0 Fixer.io, 1 APILayer, 2 Frankfurter (kulcs nélkül, új fiókok alapértéke), `"manual"`; `api_key` |
 | POST | `/api/exchange-rates/refresh` | Árfolyamok frissítése most |
 | GET / PATCH | `/api/admin/settings` | Csak admin: `registrations_open`, `max_users`, `require_email_verification`, `server_url`, `update_notification` |
 | GET / POST | `/api/admin/users` | Csak admin: felhasználók listája / új felhasználó (zárt regisztráció mellett is) |
-| DELETE | `/api/admin/users/:id` | Csak admin: felhasználó és minden adatának törlése (az admin nem törölhető) |
+| DELETE | `/api/admin/users/:id` | Csak admin: felhasználó és minden adatának (képeinek is) törlése (az admin nem törölhető) |
+| POST | `/api/admin/files/cleanup` | Csak admin: a sehol nem használt logófájlok törlése |
 
 ### PHP Wallos kompatibilitás
 
@@ -114,6 +128,6 @@ src/routes/          HTTP útvonalak (REST + PHP-kompatibilis)
 src/cron/            óránkénti cron-elosztó és napi feladatok
 src/notifications/   csatornák és emlékeztetők
 src/import/          PHP Wallos adatbázis → D1 SQL átalakítás
-scripts/             importáló CLI, fixture-generátorok
+scripts/             importáló és fájlmásoló CLI, fixture-generátorok
 test/                Vitest (Workers runtime, helyi D1); fixtures/php-wallos.json valódi PHP-ból
 ```

@@ -1,5 +1,11 @@
+import type { ImagesBinding } from "./lib/image";
+
 export interface Env {
   DB: D1Database;
+  /** R2 bucket with uploaded logos, icons and avatars. */
+  FILES: R2Bucket;
+  /** Optional Cloudflare Images binding; resizes uploads. Without it images are stored as uploaded. */
+  IMAGES?: ImagesBinding;
   /** Lifetime of a login session in days (string because it is a wrangler var). */
   SESSION_TTL_DAYS?: string;
   /** Resend API key (secret: `wrangler secret put RESEND_API_KEY`). Without it no e-mail is sent. */

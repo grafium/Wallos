@@ -1,6 +1,6 @@
 # Wallos → Cloudflare Workers + D1: felmérés és ütemterv
 
-Állapot: 2026-10-13, 3. fázis kész · Alap: Wallos v5.8.3 (`grafium/Wallos`, `main`)
+Állapot: 2026-10-13, 4. fázis kész · Alap: Wallos v5.8.3 (`grafium/Wallos`, `main`)
 
 ## 1. A kódbázis felmérése
 
@@ -29,7 +29,7 @@
 | Árfolyam-frissítés (Fixer, apilayer, Frankfurter) | `endpoints/cronjobs/updateexchange.php`, `includes/frankfurter.php` | Cron Trigger + `fetch` | **kész (3. fázis)** |
 | Értesítések (11 csatorna) | `endpoints/notifications/*`, `endpoints/cronjobs/sendnotifications.php` | Cron + `fetch`; Web Push VAPID WebCrypto-val | **kész (3. fázis)** |
 | E-mail (SMTP, PHPMailer) | `libs/PHPMailer` | Resend HTTP API | **kész (3. fázis)** |
-| Logók és avatarok (feltöltés, URL, webes keresés) | `endpoints/logos/*`, `includes/gd_background_removal.php` | R2 tároló; háttéreltávolítás → Cloudflare Images vagy elhagyás | közepes |
+| Logók és avatarok (feltöltés, URL, webes keresés) | `endpoints/logos/*`, `includes/gd_background_removal.php` | R2 tároló; átméretezés Cloudflare Images-szel; háttéreltávolítás és témavariáns tiszta JS-ben | **kész (4. fázis)** |
 | Statisztika-oldal, éves költségtörténet | `stats.php`, `storetotalyearlycost.php` | Worker + D1 + Cron | könnyű |
 | Naptár és iCal feed | `calendar.php`, `includes/ical_helper.php` | Worker | könnyű |
 | AI-javaslatok (OpenAI, Gemini, Ollama…) | `endpoints/ai/*`, `includes/ai_client.php` | `fetch` vagy Workers AI | könnyű |
@@ -54,6 +54,7 @@
 11. **API-kulcsok** a régi adatbázisban titkosítatlanok. A kompatibilitás miatt egyelőre így maradnak (egyenlőségvizsgálat), később hash-elhetők, ha a régi klienseket már nem kell támogatni.
 12. **Webhook-sablon.** A PHP csak a jegyzetet escapelte a webhook JSON-sablonjában, így egy idézőjeles név (`Say "hi"`) érvénytelen JSON-t adott. A Worker minden behelyettesített értéket JSON-escapel.
 13. **Cron-korlátok.** Az ingyenes Workers csomag egy cron-futásban 50 kimenő hívást enged (fizetős: 1000). Sok felhasználónál a fizetős csomag kell, nagyon sok felhasználónál a küldést Cloudflare Queues-ra érdemes tenni.
+14. **Képek GD nélkül.** A Workersben nincs GD; az átméretezést a Cloudflare Images binding végzi (opcionális, külön díjköteles a havi ingyenes kereten felül). Nélküle a feltöltött kép eredeti méretben kerül tárolásra, és a pixelműveletek (háttér, variáns) csak legfeljebb 1 megapixeles PNG-n futnak, a CPU-korlát miatt.
 
 ## 2. Ebben a körben elkészült (1. fázis)
 
@@ -88,6 +89,16 @@
 - **PHP-kompatibilis végpontok:** `get_notification_settings.php`, `get_fixer.php`, `set_fixer.php`.
 - **Tesztek:** 85 teszt (kimenő hívások mockolva: Resend, csatornák, Frankfurter, Fixer, push szolgáltatás; a push-titkosítás oda-vissza visszafejtéssel ellenőrizve).
 
+## 2d. Elkészült a 4. fázisban
+
+- **R2 tároló** a logóknak, feltöltött fizetésimód-ikonoknak és avataroknak, a PHP fájlútvonalaival azonos kulcsokkal; a Worker ugyanazon a címen szolgálja ki őket (`/images/uploads/logos/...`, ETag/304, `nosniff`, sandbox CSP). Az importált adatbázis-értékek így változatlanul érvényesek.
+- **Feltöltés:** multipart fájl vagy URL; a típust a fájl tartalma dönti el (PNG, JPEG, GIF, WebP, AVIF; SVG nem), max. 5 MB. URL-ről legfeljebb 3 átirányítást követ, mindegyik lépést ellenőrizve (privát címekre nem megy).
+- **Képfeldolgozás GD nélkül:** átméretezés az opcionális Cloudflare Images bindinggel; a PHP háttéreltávolítása, a szélek levágása és a sötét/világos témához készülő logóvariáns tiszta TypeScriptben, ugyanazokkal a küszöbökkel.
+- **Takarítás:** logócserekor, előfizetés/fizetési mód/felhasználó törlésekor a fájl is törlődik, ha más (pl. egy klón) már nem használja; admin végpont a sehol nem használt logókra.
+- **Logókereső:** DuckDuckGo, Brave, Google (SerpAPI-kulccsal) és a selfh.st / Dashboard Icons katalógusok, Cache API-s gyorsítótárral.
+- **Átköltözés:** `scripts/upload-files.ts` a PHP `images/uploads/logos` könyvtárát R2-be másolja; az importáló a SerpAPI-kulcsot is átveszi, és listázza a hivatkozott logókat, variánsokat és ikonokat.
+- **Tesztek:** 103 teszt (képfeldolgozás pixelszinten, R2-feltöltés és -kiszolgálás, átirányítás-védelem, takarítás klónokkal, Images binding, logókereső).
+
 ## 3. Ütemterv
 
 Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőségi sorrend; a 3. és 4. párhuzamosítható.
@@ -98,13 +109,13 @@ Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőség
 | 1 | **Alap: Worker + D1** | Lásd 2. szakasz | — | ✅ |
 | 2 | **Adatmigráció és fiókkezelés** ✅ | `wallos.db` → D1 importáló szkript (HTML-dekódolás, típusjavítás, duplikátumok); profil és beállítások API (téma, nyelv, költségvetés és költségvetési időszakok, `budget_period_*`); jelszócsere; admin API (felhasználók listája, törlése, regisztráció nyitása, `max_users`); JSON export/mentés | — | ✅ (lásd 2b) |
 | 3 | **Árfolyamok, értesítések, e-mail** ✅ | Árfolyam-cron (Frankfurter alapból, Fixer/apilayer kulccsal); értesítési táblák migrációja; HTTP-csatornák: Discord, Telegram, Gotify, Pushover, ntfy, webhook, Mattermost, PushPlus, ServerChan; e-mail HTTP-szolgáltatón; Web Push (VAPID); lemondási értesítések; e-mail-megerősítés és jelszó-visszaállítás; felhasználónkénti időzóna; „teszt” végpontok | — | ✅ (lásd 2c) |
-| 4 | Fájlok és logók | R2 a logóknak és avatároknak; feltöltés méret- és típusellenőrzéssel; logó letöltése URL-ről SSRF-védelemmel; logókereső; törléskor a fájl takarítása; Cloudflare Images átméretezés (háttéreltávolítás opcionális) | 1 hét | Logó feltölthető, URL-ről behúzható, és törléskor eltűnik az R2-ből |
+| 4 | **Fájlok és logók** ✅ | R2 a logóknak és avatároknak; feltöltés méret- és típusellenőrzéssel; logó letöltése URL-ről SSRF-védelemmel; logókereső; törléskor a fájl takarítása; Cloudflare Images átméretezés (háttéreltávolítás opcionális) | — | ✅ (lásd 2d) |
 | 5 | Webes felület | Workers Static Assets a meglévő CSS/JS/képekhez; az oldalak portolása Hono JSX SSR-re (főoldal/előfizetések, statisztika, naptár, beállítások, profil, admin, belépés/regisztráció); i18n konverzió PHP → JSON; témák, egyedi CSS és színek; PWA manifest + service worker | 2–3 hét | A régi felület minden képernyője működik a Workeren |
 | 6 | Haladó hitelesítés | TOTP 2FA (mentőkódokkal, kizárással); OIDC/OAuth SSO, csak-SSO mód; „emlékezz rám”; belépési rate limit (Workers Rate Limiting); CSRF a böngészős űrlapokhoz | 1 hét | A PHP biztonsági javításai (GHSA-k) mind teljesülnek |
 | 7 | Statisztika+, naptár, AI | Éves költségtörténet (heti cron); iCal feed tokennel; naptárnézet; AI-javaslatok (OpenAI/Gemini, opcionálisan Workers AI) heti/havi cronnal | 1 hét | Statisztika-oldal és iCal paritás a PHP-val |
 | 8 | Élesítés | Egyedi domain, Cloudflare Access/WAF az admin felülethez; D1 Time Travel + időszakos export R2-be; GitHub Actions (teszt + deploy); monitorozás; átállás a PHP példányról (import, DNS) | 0,5–1 hét | Éles forgalom a Workeren, a PHP példány leállítható |
 
-**Hátralévő: kb. 5,5–7 hét** a teljes funkcióparitásig. Az API már most élesben használható meglévő kliensekkel (pl. Home Assistant integráció, mobilappok), és a meglévő adatok átköltöztethetők.
+**Hátralévő: kb. 4,5–6 hét** a teljes funkcióparitásig. Az API már most élesben használható meglévő kliensekkel (pl. Home Assistant integráció, mobilappok), és a meglévő adatok átköltöztethetők.
 
 ### Cron-megfeleltetés
 
@@ -129,6 +140,7 @@ cd worker
 npm install
 npx wrangler login
 npx wrangler d1 create wallos          # a kapott database_id-t írd be a wrangler.jsonc-be
+npx wrangler r2 bucket create wallos-files
 npm run db:migrate:remote
 npx wrangler secret put RESEND_API_KEY # és az EMAIL_FROM a wrangler.jsonc-ben, hitelesített domainnel
 npm run deploy

@@ -6,6 +6,7 @@ import { fail, ok, parseId, readBody, validationFailed } from "../lib/http";
 import { flag, registerSchema } from "../lib/schemas";
 import { emailConfigured } from "../lib/email";
 import { registerUser } from "../services/accounts";
+import { deleteAvatarIfUnused, deleteLogosIfUnused, deleteUnusedLogos } from "../services/files";
 
 /*
   Instance administration. As in PHP Wallos the administrator is user 1.
@@ -104,7 +105,19 @@ adminRoutes.delete("/users/:id", async (c) => {
   const id = parseId(c.req.param("id"));
   if (id === null) return fail(c, 400, "Missing parameter", 'Parameter "id" is required.');
   if (id === ADMIN_USER_ID) return fail(c, 409, "Protected", "The administrator account can't be deleted.");
+  // The files go with the account, unless a clone elsewhere still uses them.
+  const [logos, avatar] = await c.env.DB.batch<Record<string, string | null>>([
+    c.env.DB.prepare(
+      "SELECT logo AS name FROM subscriptions WHERE user_id = ?1 UNION SELECT logo_variant FROM subscriptions WHERE user_id = ?1 UNION SELECT icon FROM payment_methods WHERE user_id = ?1",
+    ).bind(id),
+    c.env.DB.prepare("SELECT avatar FROM user WHERE id = ?").bind(id),
+  ]);
   const result = await c.env.DB.prepare("DELETE FROM user WHERE id = ?").bind(id).run();
   if (result.meta.changes === 0) return fail(c, 404, "Not found", "No such user.");
+  await deleteLogosIfUnused(c.env, (logos?.results ?? []).map((r) => r.name));
+  await deleteAvatarIfUnused(c.env, avatar?.results[0]?.avatar);
   return ok(c, "User deleted", { id });
 });
+
+/** Deletes logo files that no subscription or payment method uses (deleteunusedlogos.php). */
+adminRoutes.post("/files/cleanup", async (c) => ok(c, "Unused logos deleted", await deleteUnusedLogos(c.env)));

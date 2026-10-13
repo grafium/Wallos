@@ -32,7 +32,7 @@ export interface ImportReport {
   warnings: string[];
   /** Source tables with rows that this version does not import yet, and the roadmap phase that adds them. */
   notImported: Record<string, { rows: number; phase: string }>;
-  /** Uploaded files referenced by the data; they live outside the database (phase 4 moves them to R2). */
+  /** Uploaded files the data refers to; copy them to R2 with scripts/upload-files.ts. */
   files: { logos: string[]; avatars: string[] };
 }
 
@@ -48,8 +48,6 @@ export interface ImportOptions {
 
 /** Tables handled by later phases; listed so the report can say what was left behind. */
 const LATER_TABLES: Record<string, string> = {
-  uploaded_avatars: "4",
-  google_search: "4",
   totp: "6",
   oauth_settings: "6",
   total_yearly_cost: "7",
@@ -71,6 +69,9 @@ const IGNORED_TABLES = new Set([
   "email_verification",
   "password_resets",
   "login_tokens",
+  // The history of uploaded avatars; the one in use is user.avatar, and the
+  // files themselves are copied by scripts/upload-files.ts.
+  "uploaded_avatars",
 ]);
 
 /** PHP notification tables -> channel name and the config fields to carry over. */
@@ -361,7 +362,12 @@ export function buildImport(source: SourceTables, options: ImportOptions = {}): 
     ],
     [
       "payment_methods",
-      (row) => ({ name: text(row.name), icon: str(row.icon) ? text(row.icon) : null, enabled: flag(row.enabled, 1), order: int(row.order) ?? 0 }),
+      (row) => {
+        const icon = str(row.icon) ? text(row.icon) : null;
+        // Built-in icons live under images/uploads/icons/; anything else is an uploaded file.
+        if (icon && !icon.startsWith("images/")) report.files.logos.push(icon);
+        return { name: text(row.name), icon, enabled: flag(row.enabled, 1), order: int(row.order) ?? 0 };
+      },
     ],
   ];
 
@@ -431,6 +437,8 @@ export function buildImport(source: SourceTables, options: ImportOptions = {}): 
     const frequency = int(row.frequency);
     const logo = str(row.logo);
     if (logo) report.files.logos.push(logo);
+    const logoVariant = str(row.logo_variant);
+    if (logoVariant) report.files.logos.push(logoVariant);
 
     const values: Record<string, Literal> = {
       id,
@@ -550,5 +558,13 @@ export function buildImport(source: SourceTables, options: ImportOptions = {}): 
     count("imported", "last_exchange_update");
   }
 
+  for (const [userId, row] of lastPerUser("google_search")) {
+    const key = str(row.api_key) ?? "";
+    if (!key) continue;
+    statements.push(insert("google_search", { user_id: userId, api_key: key }));
+    count("imported", "google_search");
+  }
+
+  report.files.logos = [...new Set(report.files.logos)];
   return { statements, report };
 }

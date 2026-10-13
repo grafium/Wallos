@@ -1,6 +1,6 @@
 {
   "name": "wallos-worker",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Wallos subscription tracker on Cloudflare Workers + D1",
   "type": "module",
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "fast-png": "^8.0.0",
     "hono": "^4.13.13",
     "zod": "^4.6.7"
   },
