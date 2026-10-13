@@ -329,6 +329,14 @@ describe("PHP Wallos API compatibility", () => {
     const categories = await call(`/api/categories/get_categories.php?api_key=${user.apiKey}`);
     expect(categories.body.categories[0]).toMatchObject({ name: "No category", in_use: true });
 
+    const ctx = createExecutionContext();
+    const feed = await worker.fetch(new Request(`https://wallos.test/api/subscriptions/get_ical_feed.php?api_key=${user.apiKey}`), env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(feed.headers.get("content-type")).toBe("text/calendar; charset=utf-8");
+    const ics = await feed.text();
+    expect(ics).toMatch(/^BEGIN:VCALENDAR/);
+    expect(ics).toContain("SUMMARY:Legacy");
+
     const version = await call(`/api/status/version.php?api_key=${user.apiKey}`);
     expect(version.body.version).toMatch(/^v\d+\.\d+\.\d+$/);
   });

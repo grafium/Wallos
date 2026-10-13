@@ -134,7 +134,8 @@ routes.get("/stats.php", uiPage, async (c: UiCtx) => {
 
   const momSign = (extra.monthOverMonthDelta ?? 0) >= 0 ? "+" : "-";
   const periodRange = stats.budgetPeriodLabel;
-  const mostExpensive = stats.mostExpensive;
+  // PHP started from a price of 0, so a subscription is only named when it costs something.
+  const mostExpensive = stats.mostExpensive && stats.mostExpensive.price > 0 ? stats.mostExpensive : null;
 
   const data = (points: unknown) => js(numericCheck(points));
   const flag = (value: boolean) => (value ? 1 : 0);

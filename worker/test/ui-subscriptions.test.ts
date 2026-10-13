@@ -111,8 +111,8 @@ describe("subscriptions.php", () => {
     expect(html).toContain('<span class="cycle" title="Manual Renewal">');
     // Only manual subscriptions can be renewed by hand; one-time purchases sit at the bottom.
     expect(html.match(/<li class="renew"/g)?.length).toBe(1);
-    expect(html).toContain('<div class="subscription-list-title">Lifetime purchases</div>');
-    expect(html.indexOf("Lifetime purchases")).toBeGreaterThan(html.indexOf('data-name="Manual"'));
+    expect(html).toContain('<div class="subscription-list-title">Lifetime Purchases</div>');
+    expect(html.indexOf("Lifetime Purchases")).toBeGreaterThan(html.indexOf('data-name="Manual"'));
     // The form.
     expect(html).toContain(`<option value="${ids.currency}" selected="">`);
     expect(html).toContain('<option value="366">366</option>');
@@ -309,7 +309,8 @@ describe("endpoints/subscription/*.php", () => {
     expect(ics).toContain(`DTSTART;VALUE=DATE:${day(5).replace(/-/g, "")}`);
     expect(ics).toContain("TRIGGER:-P1D");
     expect(ics).toContain("\r\n ");
-    expect(ics.split("\n").every((line) => new TextEncoder().encode(line.replace(/\r$/, "")).length <= 75)).toBe(true);
+    // Like PHP's icalFold(), 75 octets plus the continuation space.
+    expect(ics.split("\n").every((line) => new TextEncoder().encode(line.replace(/\r$/, "")).length <= 76)).toBe(true);
 
     const other = await browserSession("icsother");
     expect((await endpoint(other, "/endpoints/subscription/exportcalendar.php", { json: { id } })).json).toEqual({ success: false, message: "Subscription not found" });
@@ -467,6 +468,7 @@ describe("helpers", () => {
   it("folds iCalendar lines on character boundaries", () => {
     const folded = icalFold(`SUMMARY:${"é".repeat(60)}`);
     expect(folded.split("\r\n ").every((part) => new TextEncoder().encode(part).length <= 75)).toBe(true);
+    expect(folded).toContain("\r\n ");
     expect(folded.replace(/\r\n /g, "")).toBe(`SUMMARY:${"é".repeat(60)}`);
   });
 });

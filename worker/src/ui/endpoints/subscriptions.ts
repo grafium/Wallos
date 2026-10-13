@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { html } from "hono/html";
 import type { AppBindings } from "../../env";
 import { isValidDate } from "../../lib/dates";
 import { sniffImageType } from "../../lib/image";
@@ -19,8 +20,6 @@ import type { CreateSubscriptionInput, UpdateSubscriptionInput } from "../../lib
 import { loadUi, type UiCtx } from "../context";
 import { translator, resolveLanguage, type Translate } from "../i18n";
 import { loadLookups, printItems, querySubscriptions, reorder, sorting, SubscriptionList } from "../pages/subscriptions";
-import { getCookie } from "hono/cookie";
-import { html } from "hono/html";
 
 /*
   The endpoints/*.php the subscriptions and calendar pages call:
@@ -35,8 +34,7 @@ export const routes = new Hono<AppBindings>();
 
 /** Translations for endpoints that do not need the whole page context. */
 async function endpointTranslator(c: UiCtx): Promise<Translate> {
-  const row = await c.env.DB.prepare("SELECT language FROM user WHERE id = ?").bind(c.get("user").id).first<{ language: string | null }>();
-  return translator(resolveLanguage(row?.language ?? getCookie(c, "language")));
+  return translator(resolveLanguage(c.get("user").language));
 }
 
 /** The JSON body of a script's fetch(); {} when it is missing or malformed. */

@@ -3,6 +3,7 @@ import type { AppBindings } from "../env";
 import { fail, ok, parseId, readBody } from "../lib/http";
 import { WALLOS_COMPAT_VERSION } from "../version";
 import { adminSettingsHandler, requireAdmin, updateAdminSettingsHandler } from "./admin";
+import { icalFeed } from "../ui/endpoints/subscriptions";
 import { legacyGetFixer, legacySetFixer } from "./exchange-rates";
 import { legacyNotificationSettings } from "./notifications";
 import { categories, currencies, household, paymentMethods } from "./lookups";
@@ -82,6 +83,13 @@ legacyRoutes.post("/admin/set_admin_settings.php", requireAdmin, async (c) => up
 legacyRoutes.on(["GET", "POST"], "/notifications/get_notification_settings.php", (c) => legacyNotificationSettings(c));
 legacyRoutes.on(["GET", "POST"], "/fixer/get_fixer.php", (c) => legacyGetFixer(c));
 legacyRoutes.post("/fixer/set_fixer.php", async (c) => legacySetFixer(c, await requestParams(c)));
+
+// Calendar apps subscribe to this URL with the API key in the query string.
+legacyRoutes.on(["GET", "POST"], "/subscriptions/get_ical_feed.php", async (c) => {
+  const params = await requestParams(c);
+  const ics = await icalFeed(c.env.DB, c.get("user"), params.convert_currency === "true");
+  return c.body(ics, 200, { "content-type": "text/calendar; charset=utf-8", "content-disposition": 'attachment; filename="subscriptions.ics"' });
+});
 
 legacyRoutes.on(["GET", "POST"], "/status/version.php", (c) =>
   ok(c, "version", { version: `v${WALLOS_COMPAT_VERSION}`, version_number: WALLOS_COMPAT_VERSION, notes: [] }),
