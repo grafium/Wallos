@@ -1,6 +1,6 @@
 # Átadás-átvétel — hol tart a projekt, hogyan lehet folytatni
 
-Állapot: **2026-10-13, 0.8.0 verzió, a 8. fázis (élesítés előkészítése) kész** (`e18df73`, CI zöld) – a kód kész és ellenőrzött; az éles telepítés a megrendelő Cloudflare-fiókjában, az [ELESITES.md](./ELESITES.md) szerint történik. Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
+Állapot: **2026-10-13, 0.8.0 verzió, élesítve:** `https://wallos.grafium.workers.dev` (D1: `77fe2741-2dfa-43b1-9a6a-db5371ed1c87`; `check:deployment` 8/8 zöld). Hátravan: táblalista-visszaigazolás, első admin, Resend, opcionálisan saját domain és adatátköltöztetés ([ELESITES.md](./ELESITES.md)). Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
 
 ## 1. Mi működik
 
@@ -29,7 +29,7 @@ Ezek a tesztekben mockolt hívásokkal működnek, valódi szolgáltatóval az �
 - E-mail a Resenden át (jelszó-visszaállítás, értesítés), Web Push egy valódi böngészővel.
 - Árfolyam-frissítés és logókereső élő hálózaton; a cron első hétfői futása (költségtörténet).
 
-## 3. Élesítés (még nem történt meg — útmutató: [ELESITES.md](./ELESITES.md))
+## 3. Élesítés (megtörtént a `workers.dev` címre — útmutató a további lépésekhez: [ELESITES.md](./ELESITES.md))
 
 A Cloudflare-fiókban egyszer kell elvégezni (ebből a környezetből nem futtatható, mert a Cloudflare API elérése tiltott):
 
@@ -69,6 +69,7 @@ Opcionális: a Cloudflare Images binding bekapcsolása (`wrangler.jsonc`, `image
 - **SSO-only kizárás:** ha csak OIDC-belépés engedélyezett és a szolgáltató nem elérhető, a jelszavas belépés a `OIDC_DISABLE_PASSWORD_LOGIN=false` változóval vagy `UPDATE oauth_settings SET password_login_disabled = 0` D1-paranccsal kapcsolható vissza.
 - **Elveszett 2FA:** mentőkóddal lehet belépni; ha az sincs: `UPDATE user SET totp_enabled = 0 WHERE id = …; DELETE FROM totp WHERE user_id = …` (D1).
 - **OIDC redirect URL:** a szolgáltatónál a Wallos címét kell visszatérési címként megadni (pl. `https://wallos.example.com/`); a Worker bármely oldalra érkező `?code&state`-et OIDC-visszatérésként kezel.
+- **A sandbox nem éri el a Cloudflare-t:** az `api.cloudflare.com` és a `*.workers.dev` tiltott, token nincs. Az éles ellenőrzés a megrendelő által visszaküldött kimenetekből megy, amíg a környezet beállításaiban ezeket nem engedélyezik (Network access → Allowed domains, plusz `CLOUDFLARE_API_TOKEN` és `CLOUDFLARE_ACCOUNT_ID`).
 - **AI és helyi hálózat:** Ollama vagy saját OpenAI-kompatibilis szerver csak nyilvános címen működik (a Worker nem látja a LAN-t); Cloudflare Tunnel vagy Workers AI (`"ai": { "binding": "AI" }` a `wrangler.jsonc`-ben) a megoldás.
 - **Ütemezett AI:** óránként legfeljebb 5 esedékes felhasználó; sok felhasználónál a heti futás több órán át tart, ez szándékos (egy kérés akár percekig tarthat).
 - `pkill -f "wrangler dev"` a saját parancssort is leállítja, ha az is tartalmazza ezt a szöveget (exit 144); a `wrangler dev` leállítását külön parancsban futtasd.

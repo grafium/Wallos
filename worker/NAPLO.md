@@ -17,6 +17,9 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | Napló: 7. fázis commitja és CI-eredménye | `160e2f5` | 233 | ✅ |
 | Mentés a 7. fázis után | `d0f9248` | 233 | ✅ |
 | 8. Élesítés előkészítése (mentés, beállító, CI/CD, útmutató) | `e18df73` | 240 | ✅ |
+| Napló: 8. fázis CI-eredménye | `48350f9` | 240 | ✅ |
+| Élesítés a megrendelőnél: D1-azonosító (megrendelő commitja) | `6ead322` | 240 | ❌ (tesztoldali hiba) |
+| Teszt javítása: a valódi D1-azonosító elfogadása | `d61a855` | 240 | ✅ |
 
 Minden munka 2026-10-13-án készült.
 
@@ -131,3 +134,13 @@ Minden munka 2026-10-13-án készült.
 - Ellenőrzés: 240 teszt, typecheck, `wrangler deploy --dry-run`, a beállító `--dry-run`-ja, az ellenőrző szkript a helyi `wrangler dev` ellen (8/8 zöld).
 - **Hibák menet közben:** a `setVar` a `wrangler.jsonc` kommentjében szereplő `"OIDC_ENABLED"`-et írta volna át — a teszt a valódi fájlon fogta meg, javítva. A visszaállítási útmutató első változata az új adatbázist névvel (`wallos-restore`) migrálta volna, amit a wrangler a konfigurációban nem talál — átállítva a `DB` binding névre. A `?raw` import típusdeklarációja modulfájlban hatástalan volt — külön `test/raw.d.ts`. A `pkill -f "wrangler dev"` a saját parancssort is leállítja (exit 144) — a parancsokat ezért külön kell futtatni.
 - Verzió: 0.8.0.
+
+## Élesítés (a megrendelő Cloudflare-fiókjában)
+
+**Kérés:** „Tedd ki ide a scripteket, mit indítsak el” → a megrendelő a saját gépén futtatta a lépéseket (`ELESITES.md` 1–6.); a Resend-kulcs még nincs bekötve.
+
+- Ebből a környezetből a Cloudflare API és a `*.workers.dev` hálózatilag tiltott, Cloudflare-token nincs; az ellenőrzés a megrendelő által visszaküldött kimenetekből és a repóból történt.
+- `setup:cloudflare` lefutott: D1 adatbázis `77fe2741-2dfa-43b1-9a6a-db5371ed1c87`, a megrendelő commitolta (`6ead322`).
+- A CI ezen a commiton elbukott: a `deploy-config` teszt a helyőrző azonosítót várta. Ez a teszt hibája volt, nem a telepítésé; javítva (`d61a855`), a CI zöld.
+- `npm run check:deployment -- https://wallos.grafium.workers.dev`: **8/8 zöld, verzió 0.8.0** (health és adatbázis, statikus fájlok, belépési átirányítás, belépési oldal, manifest, API-védelem, biztonsági fejlécek, a mentések nem publikusak).
+- Nyitott: a táblalista visszaigazolása (a 0006–0007 migrációk), az első admin regisztrációja, Resend (`RESEND_API_KEY`, `EMAIL_FROM`), opcionálisan saját domain, GitHub-ról telepítés, adatátköltöztetés, az `ELESITES.md` 11. ellenőrzőlistája.
