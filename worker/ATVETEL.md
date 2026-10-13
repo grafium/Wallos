@@ -1,6 +1,6 @@
 # Átadás-átvétel — hol tart a projekt, hogyan lehet folytatni
 
-Állapot: **2026-10-13, 0.8.0 verzió, élesítve:** `https://wallos.grafium.workers.dev` (D1: `77fe2741-2dfa-43b1-9a6a-db5371ed1c87`; `check:deployment` 8/8 zöld; mind a 7 migráció lefutott). Hátravan: első admin, Resend, opcionálisan saját domain és adatátköltöztetés ([ELESITES.md](./ELESITES.md)). Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
+Állapot: **2026-10-13, 0.8.0 verzió, élesítve:** `https://wallos.grafium.workers.dev` (D1: `77fe2741-2dfa-43b1-9a6a-db5371ed1c87`; `check:deployment` 8/8 zöld; mind a 7 migráció lefutott). Utolsó mentés: az élesítés után, tiszta munkakönyvtárral. Hátravan: első admin, Resend, opcionálisan saját domain és adatátköltöztetés ([ELESITES.md](./ELESITES.md)). Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
 
 ## 1. Mi működik
 
@@ -82,4 +82,4 @@ Opcionális: a Cloudflare Images binding bekapcsolása (`wrangler.jsonc`, `image
 1. `git fetch origin claude/zen-goldberg-0hbajd && git checkout claude/zen-goldberg-0hbajd`
 2. Olvasd el: `worker/SZABALYOK.md`, `worker/ATVETEL.md` (ez), `worker/ROADMAP.md` 3. szakasz.
 3. `cd worker && npm install && npm run typecheck && npm test` — a kiinduló állapot: 240 zöld teszt.
-4. A fejlesztés a 8. fázissal lezárult. Ha az éles telepítés közben valami elakad, a hibaüzenettel és az ELESITES.md lépésének számával érdemes folytatni; új funkció új fázisként kerül a ROADMAP-ba.
+4. Az éles példány: `https://wallos.grafium.workers.dev`. Ellenőrzés: `npm run check:deployment -- https://wallos.grafium.workers.dev` és `npx wrangler d1 migrations list DB --remote` (a megrendelő gépén). A fejlesztés a 8. fázissal lezárult. Ha az éles telepítés közben valami elakad, a hibaüzenettel és az ELESITES.md lépésének számával érdemes folytatni; új funkció új fázisként kerül a ROADMAP-ba.

@@ -20,6 +20,8 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | Napló: 8. fázis CI-eredménye | `48350f9` | 240 | ✅ |
 | Élesítés a megrendelőnél: D1-azonosító (megrendelő commitja) | `6ead322` | 240 | ❌ (tesztoldali hiba) |
 | Teszt javítása: a valódi D1-azonosító elfogadása | `d61a855` | 240 | ✅ |
+| Napló: élesítés a workers.dev címre | `6c3fb2b` | 240 | ✅ |
+| Napló: minden migráció lefutott élesben | `5b9a895` | 240 | ✅ |
 
 Minden munka 2026-10-13-án készült.
 
@@ -145,3 +147,11 @@ Minden munka 2026-10-13-án készült.
 - `npm run check:deployment -- https://wallos.grafium.workers.dev`: **8/8 zöld, verzió 0.8.0** (health és adatbázis, statikus fájlok, belépési átirányítás, belépési oldal, manifest, API-védelem, biztonsági fejlécek, a mentések nem publikusak).
 - `npx wrangler d1 migrations list DB --remote`: **„No migrations to apply”**, tehát mind a 7 migráció lefutott (az idézőjeles táblalista-lekérdezést a macOS zsh szétszedte, ez a parancs idézőjel nélkül ugyanazt igazolja).
 - Nyitott: az első admin regisztrációja, Resend (`RESEND_API_KEY`, `EMAIL_FROM`), opcionálisan saját domain, GitHub-ról telepítés, adatátköltöztetés, az `ELESITES.md` 11. ellenőrzőlistája.
+
+## Mentés (az élesítés után)
+
+**Kérés:** „Ments mindent: NAPLO, SZABALYOK, ATVETEL.”
+
+- Állapot: 0.8.0 élesben a `https://wallos.grafium.workers.dev` címen, `check:deployment` 8/8, mind a 7 migráció lefutott, 240 zöld teszt, CI zöld, munkakönyvtár tiszta.
+- A SZABALYOK-ba bekerültek az élesítés tanulságai: tesztben nem rögzítünk telepítésfüggő értéket; a megrendelőnek adott parancsok legyenek idézőjel nélküliek vagy másolásbiztosak; az éles ellenőrzés a megrendelő kimeneteiből megy, amíg a sandbox nem éri el a Cloudflare-t.
+- Nyitott a megrendelőnél: első admin (vagy import), admin 2FA, mentés-próba, Resend, opcionálisan saját domain és GitHubról telepítés, az `ELESITES.md` 11. ellenőrzőlistája.

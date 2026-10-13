@@ -68,5 +68,14 @@ Ezek a szabályok a projekt eddigi menetéből és a megrendelő kéréseiből �
 2. Kimenő hívásokat `vi.spyOn(globalThis, "fetch")`-csel mockolunk, valódi külső szolgáltatást teszt nem hív.
 3. Statikus fájlt `env.ASSETS.fetch`-csel tesztelünk (a `worker.fetch` megkerüli az asseteket). Felület-tesztekhez a `test/ui-helpers.ts` segédeit használjuk (`browserSession`, `getPage`, `endpoint`, `raw`).
 4. Minden új végponthoz és PHP-eltéréshez teszt kell.
-5. Ütemezett feladatot a `runScheduled(env, időpont)` hívásával, rögzített UTC-időponttal tesztelünk (pl. hétfő 01:00), a kimenő hívásokat mockolva.
-6. Felületi változás után a böngészős füstteszt is fusson: `node scripts/smoke-test.mjs` (lásd [ATVETEL.md](./ATVETEL.md)).
+5. Teszt nem rögzíthet telepítésfüggő értéket (pl. a `wrangler.jsonc` adatbázis-azonosítóját): a megrendelő telepítése megváltoztatja, és a CI ettől nem pirosodhat be.
+6. Ütemezett feladatot a `runScheduled(env, időpont)` hívásával, rögzített UTC-időponttal tesztelünk (pl. hétfő 01:00), a kimenő hívásokat mockolva.
+7. Felületi változás után a böngészős füstteszt is fusson: `node scripts/smoke-test.mjs` (lásd [ATVETEL.md](./ATVETEL.md)).
+
+## 7. Élesítés és üzemeltetés
+
+1. A sandbox nem éri el a Cloudflare-t (az `api.cloudflare.com` és a `*.workers.dev` tiltott, token nincs). Az éles ellenőrzés a megrendelő által futtatott parancsok kimenetéből történik; amit nem láttunk, azt nem jelentjük késznek.
+2. A megrendelőnek adott parancsok legyenek másolásbiztosak: lehetőleg idézőjel nélküliek (pl. `npx wrangler d1 migrations list DB --remote` a táblalista-SQL helyett), macOS zsh-n és Windows PowerShellen is működjenek, vagy legyen mellettük a PowerShell-változat.
+3. Ha a wrangler csak a súgót írja ki, a hibaüzenet a súgó fölött van (`✘ [ERROR]`): azt kell elkérni.
+4. Az éles állapotot (cím, adatbázis-azonosító, ellenőrzés eredménye, migrációk) az ATVETEL elején és a NAPLO-ban rögzítjük.
+5. Titkot (tokent, API-kulcsot) soha nem kérünk be a chatben; a megrendelő `wrangler secret put`-tal vagy a környezet beállításaiban adja meg.
