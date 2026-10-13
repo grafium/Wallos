@@ -1,4 +1,5 @@
 import type { Context, MiddlewareHandler } from "hono";
+import { hasValidCsrf, sessionTokenFromCookie } from "../ui/session";
 import type { AppBindings, AuthUser } from "../env";
 import { sha256Hex } from "./crypto";
 import { fail } from "./http";
@@ -12,6 +13,8 @@ import { fail } from "./http";
       It may arrive as a Bearer token, an X-API-Key header, or - for
       compatibility with existing Wallos API clients - an api_key / apiKey
       query or form parameter.
+    * the web interface's session cookie (src/ui/session.ts); requests
+      that change something then also need the CSRF token.
 */
 
 const USER_FIELDS = ["id", "username", "email", "main_currency", "language", "budget", "timezone"];
@@ -38,7 +41,7 @@ async function extractCredential(c: Context<AppBindings>): Promise<string | null
   return null;
 }
 
-async function userFromSession(db: D1Database, token: string): Promise<AuthUser | null> {
+export async function userFromSession(db: D1Database, token: string): Promise<AuthUser | null> {
   const id = await sha256Hex(token);
   return db
     .prepare(
@@ -56,6 +59,20 @@ async function userFromApiKey(db: D1Database, apiKey: string): Promise<AuthUser 
 
 export const requireAuth: MiddlewareHandler<AppBindings> = async (c, next) => {
   const credential = await extractCredential(c);
+  const cookieToken = credential ? null : sessionTokenFromCookie(c);
+  if (cookieToken) {
+    const user = await userFromSession(c.env.DB, cookieToken);
+    if (!user) return fail(c, 401, "Session expired", "Log in again.");
+    if (!["GET", "HEAD", "OPTIONS"].includes(c.req.method)) {
+      const type = c.req.header("content-type") ?? "";
+      const body = type.includes("form") ? ((await c.req.parseBody()) as Record<string, unknown>) : undefined;
+      if (!(await hasValidCsrf(c, cookieToken, body))) return fail(c, 403, "Invalid CSRF token");
+    }
+    c.set("user", user);
+    c.set("authMethod", "session");
+    c.set("sessionToken", cookieToken);
+    return next();
+  }
   if (!credential) {
     return fail(c, 401, "Missing parameters", "An API key or session token is required.");
   }
@@ -64,6 +81,7 @@ export const requireAuth: MiddlewareHandler<AppBindings> = async (c, next) => {
   if (sessionUser) {
     c.set("user", sessionUser);
     c.set("authMethod", "session");
+    c.set("sessionToken", credential);
     return next();
   }
 

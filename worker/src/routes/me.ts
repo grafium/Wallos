@@ -113,7 +113,7 @@ meRoutes.post("/password", async (c) => {
   const check = await verifyPassword(parsed.data.current_password, row?.password ?? "");
   if (!check.valid) return fail(c, 400, "Invalid credentials", "The current password is incorrect.", { fields: ["current_password"] });
 
-  const currentSession = await sha256Hex(c.req.header("authorization")!.slice(7).trim());
+  const currentSession = await sha256Hex(c.get("sessionToken")!);
   await c.env.DB.batch([
     c.env.DB.prepare("UPDATE user SET password = ? WHERE id = ?").bind(await hashPassword(parsed.data.new_password), user.id),
     c.env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND id != ?").bind(user.id, currentSession),

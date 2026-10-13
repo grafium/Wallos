@@ -86,8 +86,7 @@ authRoutes.post("/logout", requireAuth, async (c) => {
   if (c.get("authMethod") !== "session") {
     return fail(c, 400, "Not a session", "Log out with the session token, not the API key.");
   }
-  const token = c.req.header("authorization")!.slice(7).trim();
-  await c.env.DB.prepare("DELETE FROM sessions WHERE id = ?").bind(await sha256Hex(token)).run();
+  await c.env.DB.prepare("DELETE FROM sessions WHERE id = ?").bind(await sha256Hex(c.get("sessionToken")!)).run();
   return ok(c, "Logged out", {});
 });
 

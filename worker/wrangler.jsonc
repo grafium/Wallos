@@ -6,6 +6,11 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
 
+  // The web interface's stylesheets, scripts, fonts and images, copied from
+  // the PHP repository by scripts/build-assets.ts. A matching file is served
+  // directly; everything else reaches the Worker.
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+
   // Create the database with `npx wrangler d1 create wallos` and paste the
   // returned database_id here before the first remote migration/deploy.
   "d1_databases": [

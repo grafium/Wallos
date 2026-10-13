@@ -16,13 +16,14 @@ import { pageRoutes } from "./routes/pages";
 import { fileRoutes, uploadRoutes } from "./routes/uploads";
 import { statsRoutes } from "./routes/stats";
 import { subscriptionRoutes } from "./routes/subscriptions";
+import { ui } from "./ui/app";
 import { WALLOS_COMPAT_VERSION, WORKER_VERSION } from "./version";
 
 const app = new Hono<AppBindings>();
 
 app.use("*", secureHeaders());
 
-app.get("/", (c) =>
+app.get("/api", (c) =>
   ok(c, "Wallos API", {
     version: WORKER_VERSION,
     wallos_compat: WALLOS_COMPAT_VERSION,
@@ -64,6 +65,9 @@ api.get("/cycles", async (c) => {
 });
 
 app.route("/api", api);
+
+// The web interface (pages at the PHP URLs and the endpoints/*.php they call).
+app.route("/", ui);
 
 app.notFound((c) => fail(c, 404, "Not found"));
 app.onError((error, c) => {

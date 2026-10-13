@@ -4,6 +4,8 @@ export interface Env {
   DB: D1Database;
   /** R2 bucket with uploaded logos, icons and avatars. */
   FILES: R2Bucket;
+  /** Static files of the web interface (Workers Static Assets). */
+  ASSETS?: Fetcher;
   /** Optional Cloudflare Images binding; resizes uploads. Without it images are stored as uploaded. */
   IMAGES?: ImagesBinding;
   /** Lifetime of a login session in days (string because it is a wrangler var). */
@@ -32,6 +34,8 @@ export type AppBindings = {
     user: AuthUser;
     /** How the request authenticated; sessions can manage credentials, API keys cannot. */
     authMethod: "session" | "api_key";
+    /** The session token, when authenticated with one (Bearer or cookie). */
+    sessionToken?: string;
   };
 };
 

@@ -12,7 +12,11 @@
     "db:migrate:local": "wrangler d1 migrations apply wallos --local",
     "db:migrate:remote": "wrangler d1 migrations apply wallos --remote",
     "cf-typegen": "wrangler types --env-interface Env src/worker-configuration.d.ts",
-    "import": "node scripts/import-wallos.ts"
+    "import": "node scripts/import-wallos.ts",
+    "build:assets": "node --no-warnings scripts/build-assets.ts",
+    "predev": "npm run build:assets",
+    "pretest": "npm run build:assets",
+    "predeploy": "npm run build:assets"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
