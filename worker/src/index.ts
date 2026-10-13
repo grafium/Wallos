@@ -12,7 +12,6 @@ import { logoRoutes } from "./routes/logos";
 import { categories, currencies, household, paymentMethods } from "./routes/lookups";
 import { meRoutes } from "./routes/me";
 import { notificationRoutes } from "./routes/notifications";
-import { pageRoutes } from "./routes/pages";
 import { fileRoutes, uploadRoutes } from "./routes/uploads";
 import { statsRoutes } from "./routes/stats";
 import { subscriptionRoutes } from "./routes/subscriptions";
@@ -38,7 +37,6 @@ app.get("/api/health", async (c) => {
 });
 
 app.route("/api/auth", authRoutes);
-app.route("/", pageRoutes);
 app.route("/", fileRoutes);
 
 // Everything below requires a session token or an API key.

@@ -51,7 +51,7 @@ export async function sendVerificationEmail(env: Env, userId: number, email: str
   await env.DB.prepare("INSERT OR REPLACE INTO email_verification (user_id, email, token_hash, created_at) VALUES (?, ?, ?, ?)")
     .bind(userId, email, await sha256Hex(token), sqliteTime(new Date()))
     .run();
-  const link = `${baseUrl}/verify-email?email=${encodeURIComponent(email)}&token=${token}`;
+  const link = `${baseUrl}/verifyemail.php?email=${encodeURIComponent(email)}&token=${token}`;
   await sendEmail(env, {
     to: email,
     ...linkEmail(
@@ -100,7 +100,7 @@ export async function requestPasswordReset(env: Env, email: string, baseUrl: str
     await env.DB.prepare("INSERT OR REPLACE INTO password_resets (user_id, email, token_hash, created_at) VALUES (?, ?, ?, ?)")
       .bind(user.id, user.email, await sha256Hex(token), sqliteTime(new Date()))
       .run();
-    const link = `${baseUrl}/reset-password?email=${encodeURIComponent(user.email)}&token=${token}`;
+    const link = `${baseUrl}/passwordreset.php?email=${encodeURIComponent(user.email)}&token=${token}`;
     await sendEmail(env, {
       to: user.email,
       ...linkEmail(

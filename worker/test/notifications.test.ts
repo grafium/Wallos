@@ -361,7 +361,7 @@ describe("password reset", () => {
     const mail = emails().find((e) => e.to[0] === user.email)!;
     expect(mail.subject).toBe("Wallos: reset your password");
     const link = new URL(/https?:\/\/\S+/.exec(mail.text)![0]);
-    expect(link.pathname).toBe("/reset-password");
+    expect(link.pathname).toBe("/passwordreset.php");
     const token = link.searchParams.get("token")!;
 
     // A second request within five minutes sends nothing new.
@@ -372,8 +372,8 @@ describe("password reset", () => {
     const unknown = await call("/api/auth/password-reset", { method: "POST", json: { email: "nobody@example.com" } });
     expect(unknown.body.message).toBe(res.body.message);
 
-    const page = await call(`/reset-password?email=${encodeURIComponent(user.email)}&token=${token}`);
-    expect(page.body.html).toContain("Choose a new password");
+    const page = await call(`/passwordreset.php?email=${encodeURIComponent(user.email)}&token=${token}`);
+    expect(page.body.html).toContain('name="confirm_password"');
 
     const wrong = await call("/api/auth/password-reset/confirm", { method: "POST", json: { email: user.email, token: "0".repeat(64), password: "brand new pass" } });
     expect(wrong.status).toBe(400);
@@ -407,13 +407,13 @@ describe("e-mail verification", () => {
 
       const mail = emails().find((e) => e.to[0] === user.email)!;
       const link = new URL(/https?:\/\/\S+/.exec(mail.text)![0]);
-      expect(link.origin + link.pathname).toBe("https://wallos.example.com/verify-email");
+      expect(link.origin + link.pathname).toBe("https://wallos.example.com/verifyemail.php");
 
-      const bad = await call(`/verify-email?email=${encodeURIComponent(user.email)}&token=${"0".repeat(64)}`);
+      const bad = await call(`/verifyemail.php?email=${encodeURIComponent(user.email)}&token=${"0".repeat(64)}`);
       expect(bad.status).toBe(400);
-      const good = await call(link.pathname + link.search);
-      expect(good.status).toBe(200);
-      expect(good.body.html).toContain("E-mail confirmed");
+      expect(bad.body.html).toContain("Email verification failed");
+      const good = await call(link.pathname + link.search, { redirect: "manual" });
+      expect(good.status).toBe(302);
       expect((await login(user.username)).status).toBe(200);
     } finally {
       await env.DB.prepare("UPDATE admin SET require_email_verification = 0, server_url = NULL").run();
