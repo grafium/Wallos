@@ -41,7 +41,7 @@
 
 ### Kockázatok, döntések
 
-1. **Jelszó-hashek.** A PHP `password_hash()` bcryptet használ. A Worker az új jelszavakat PBKDF2-SHA256-tal hash-eli (natív WebCrypto, 100 000 iteráció), a régi bcrypt hasheket elfogadja, és sikeres belépéskor lecseréli. A bcrypt JS-ben fut, néhányszor 10 ms CPU — az ingyenes Workers csomag 10 ms-os CPU-limitjébe nem mindig fér bele, ezért **Workers Paid csomag ajánlott** (havi 5 USD), legalább a migrációs időszakra.
+1. **Jelszó-hashek.** A PHP `password_hash()` bcryptet használ. A Worker az új jelszavakat PBKDF2-SHA256-tal hash-eli (natív WebCrypto, 100 000 iteráció), a régi bcrypt hasheket elfogadja, és sikeres belépéskor lecseréli. A bcrypt JS-ben fut, néhányszor 10 ms CPU — az ingyenes Workers csomag 10 ms-os CPU-limitjébe nem mindig fér bele, ezért **Workers Paid csomag ajánlott** (havi 5 USD), legalább a migrációs időszakra. *(Megvan: a fizetős csomag 30 s CPU-t és 1000 kimenő hívást ad kérésenként/cron-futásonként, így a 1., 13. és 14. pont korlátai gyakorlatilag nem számítanak.)*
 2. **HTML-escapelt adatok.** A PHP a neveket `htmlspecialchars`-szal menti (`includes/inputvalidation.php`), tehát a régi adatbázisban `&amp;` szerepel `&` helyett. Az új Worker nyers szöveget tárol és megjelenítéskor escapel; az importálónak dekódolnia kell.
 3. **Hónap-túlcsordulás.** A PHP `DateInterval` jan. 31. + 1 hónapot márc. 2-re/3-ra teszi, és utána el is csúszik. A Worker a hónap utolsó napjára vágja (jan. 31. → feb. 29. → márc. 31.). Ez szándékos javítás, a tesztek rögzítik.
 4. **Egyszeri fizetések.** A PHP havi költség-számítása az egyszeri (cycle 5) tételt havi ismétlődőként számolja, a költségvetés-számítás pedig soha nem számolja. A Worker mindkét helyen pontosan egyszer, a saját hónapjában/időszakában számolja.
@@ -55,6 +55,7 @@
 12. **Webhook-sablon.** A PHP csak a jegyzetet escapelte a webhook JSON-sablonjában, így egy idézőjeles név (`Say "hi"`) érvénytelen JSON-t adott. A Worker minden behelyettesített értéket JSON-escapel.
 13. **Cron-korlátok.** Az ingyenes Workers csomag egy cron-futásban 50 kimenő hívást enged (fizetős: 1000). Sok felhasználónál a fizetős csomag kell, nagyon sok felhasználónál a küldést Cloudflare Queues-ra érdemes tenni.
 14. **Képek GD nélkül.** A Workersben nincs GD; az átméretezést a Cloudflare Images binding végzi (opcionális, külön díjköteles a havi ingyenes kereten felül). Nélküle a feltöltött kép eredeti méretben kerül tárolásra, és a pixelműveletek (háttér, variáns) csak legfeljebb 1 megapixeles PNG-n futnak, a CPU-korlát miatt.
+15. **Felület változatlan JS-sel.** A PHP JavaScriptje a böngészőben változatlan, ezért a HTML-szerkezetet és az `endpoints/*.php` válaszformátumait pontosan követni kell; a PHP-ban frissülő JS/CSS-t a `build-assets` minden buildnél újramásolja, a sablonváltozásokat viszont kézzel kell átvezetni a JSX-oldalakra.
 
 ## 2. Ebben a körben elkészült (1. fázis)
 
@@ -99,6 +100,23 @@
 - **Átköltözés:** `scripts/upload-files.ts` a PHP `images/uploads/logos` könyvtárát R2-be másolja; az importáló a SerpAPI-kulcsot is átveszi, és listázza a hivatkozott logókat, variánsokat és ikonokat.
 - **Tesztek:** 103 teszt (képfeldolgozás pixelszinten, R2-feltöltés és -kiszolgálás, átirányítás-védelem, takarítás klónokkal, Images binding, logókereső).
 
+## 2e. Elkészült az 5. fázisban
+
+- **Webes felület a Workeren**, ugyanazokon a címeken, mint a PHP-ban (`index.php`, `subscriptions.php`, `calendar.php`, `stats.php`, `settings.php`, `profile.php`, `admin.php`, `about.php`, `login.php`, `registration.php`, `passwordreset.php`, `verifyemail.php`, `logout.php`). Az oldalak Hono JSX-ben, szerveroldalon renderelődnek, a PHP-val azonos HTML-szerkezettel (id-k, osztályok), így a PHP változatlan CSS- és JS-fájljai működnek rajtuk.
+- **Workers Static Assets:** a `scripts/build-assets.ts` a repó `styles/`, `scripts/`, `images/` és `libs/` könyvtárát a `public/`-ba másolja (a `dev`, `test`, `deploy` előtt automatikusan lefut); a Worker csak a dinamikus kéréseket kapja meg.
+- **Böngészős session:** HttpOnly, SameSite=Lax `wallos_session` cookie (a „maradjak bejelentkezve” 30 napos lejáratot ad, nélküle böngészőzárásig él), CSRF-token minden módosító kéréshez (`X-CSRF-Token` fejléc vagy `csrf_token` mező). Az API Bearer tokenje és az API-kulcs ugyanúgy működik tovább.
+- **`endpoints/**/*.php` kompatibilitási réteg** a PHP JavaScriptjeinek: előfizetések (felvétel, szerkesztés, klónozás, megújítás, törlés, logókeresés és -feltöltés, lista szűrés/rendezés), beállítások (kategóriák, háztartás, fizetési módok, devizák, költségvetés, téma, színek, egyedi CSS, megjelenés), értesítések (mind a 11 csatorna mentése és tesztje), profil (avatar, jelszó, API-kulcs, fióktörlés), admin (felhasználók, regisztráció, logótakarítás), mentés.
+- **i18n:** a 29 nyelv PHP-tömbjei JSON-ba konvertálva (`scripts/convert-i18n.php`), a nyelv a felhasználó beállításából, kijelentkezve a `language` cookie-ból vagy az `Accept-Language` fejlécből jön; RTL nyelvek támogatva.
+- **Statisztika, naptár:** a PHP grafikonjai (ApexCharts) és kiegészítő mutatói, havi naptárnézet; **iCal feed** (`/api/subscriptions/get_ical_feed.php?api_key=…`, és a naptár oldal letöltése).
+- **PWA:** `manifest.php`, `service-worker.js` (offline gyorsítótár a statikus fájlokra).
+- **Tesztek:** 198 teszt; böngészős (Playwright) végigjárás `wrangler dev` ellen: regisztráció és belépés az űrlapon, minden oldal betöltése JS-hiba nélkül, előfizetés felvétele az űrlapon, részletek megnyitása, kategória felvétele, grafikonok renderelése.
+
+**Eltérések a PHP felülettől:**
+- TOTP és OIDC gombjai megvannak, de „még nem elérhető” üzenetet adnak (6. fázis); a „belépés kikapcsolása” (jelszó nélküli mód) nincs.
+- AI-javaslatok beállításai megjelennek, a mentés „még nem elérhető” (7. fázis).
+- A mentés az admin oldalon zip-be csomagolt JSON-export (nincs SQLite-fájl); visszaállítás és PHP-adatbázis importja az importáló CLI-vel megy.
+- SMTP-beállítás helyett Resend (titokként), a helyi webhook-engedélylista nem alkalmazható; a cron-gombok csak jelzik, hogy a feladat az óránkénti triggeren fut.
+
 ## 3. Ütemterv
 
 Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőségi sorrend; a 3. és 4. párhuzamosítható.
@@ -110,12 +128,12 @@ Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőség
 | 2 | **Adatmigráció és fiókkezelés** ✅ | `wallos.db` → D1 importáló szkript (HTML-dekódolás, típusjavítás, duplikátumok); profil és beállítások API (téma, nyelv, költségvetés és költségvetési időszakok, `budget_period_*`); jelszócsere; admin API (felhasználók listája, törlése, regisztráció nyitása, `max_users`); JSON export/mentés | — | ✅ (lásd 2b) |
 | 3 | **Árfolyamok, értesítések, e-mail** ✅ | Árfolyam-cron (Frankfurter alapból, Fixer/apilayer kulccsal); értesítési táblák migrációja; HTTP-csatornák: Discord, Telegram, Gotify, Pushover, ntfy, webhook, Mattermost, PushPlus, ServerChan; e-mail HTTP-szolgáltatón; Web Push (VAPID); lemondási értesítések; e-mail-megerősítés és jelszó-visszaállítás; felhasználónkénti időzóna; „teszt” végpontok | — | ✅ (lásd 2c) |
 | 4 | **Fájlok és logók** ✅ | R2 a logóknak és avatároknak; feltöltés méret- és típusellenőrzéssel; logó letöltése URL-ről SSRF-védelemmel; logókereső; törléskor a fájl takarítása; Cloudflare Images átméretezés (háttéreltávolítás opcionális) | — | ✅ (lásd 2d) |
-| 5 | Webes felület | Workers Static Assets a meglévő CSS/JS/képekhez; az oldalak portolása Hono JSX SSR-re (főoldal/előfizetések, statisztika, naptár, beállítások, profil, admin, belépés/regisztráció); i18n konverzió PHP → JSON; témák, egyedi CSS és színek; PWA manifest + service worker | 2–3 hét | A régi felület minden képernyője működik a Workeren |
-| 6 | Haladó hitelesítés | TOTP 2FA (mentőkódokkal, kizárással); OIDC/OAuth SSO, csak-SSO mód; „emlékezz rám”; belépési rate limit (Workers Rate Limiting); CSRF a böngészős űrlapokhoz | 1 hét | A PHP biztonsági javításai (GHSA-k) mind teljesülnek |
-| 7 | Statisztika+, naptár, AI | Éves költségtörténet (heti cron); iCal feed tokennel; naptárnézet; AI-javaslatok (OpenAI/Gemini, opcionálisan Workers AI) heti/havi cronnal | 1 hét | Statisztika-oldal és iCal paritás a PHP-val |
+| 5 | **Webes felület** ✅ | Workers Static Assets a meglévő CSS/JS/képekhez; az oldalak portolása Hono JSX SSR-re (főoldal/előfizetések, statisztika, naptár, beállítások, profil, admin, belépés/regisztráció); i18n konverzió PHP → JSON; témák, egyedi CSS és színek; PWA manifest + service worker; cookie-s session CSRF-védelemmel, „emlékezz rám” | — | ✅ (lásd 2e) |
+| 6 | Haladó hitelesítés | TOTP 2FA (mentőkódokkal, kizárással); OIDC/OAuth SSO, csak-SSO mód; belépési rate limit (Workers Rate Limiting) | 1 hét | A PHP biztonsági javításai (GHSA-k) mind teljesülnek |
+| 7 | Költségtörténet, AI | Éves költségtörténet (heti cron) a statisztika-oldal történeti grafikonjához; AI-javaslatok (OpenAI/Gemini, opcionálisan Workers AI) heti/havi cronnal. (Naptárnézet és iCal feed az 5. fázisban elkészült.) | 0,5–1 hét | Statisztika-oldal és iCal paritás a PHP-val |
 | 8 | Élesítés | Egyedi domain, Cloudflare Access/WAF az admin felülethez; D1 Time Travel + időszakos export R2-be; GitHub Actions (teszt + deploy); monitorozás; átállás a PHP példányról (import, DNS) | 0,5–1 hét | Éles forgalom a Workeren, a PHP példány leállítható |
 
-**Hátralévő: kb. 4,5–6 hét** a teljes funkcióparitásig. Az API már most élesben használható meglévő kliensekkel (pl. Home Assistant integráció, mobilappok), és a meglévő adatok átköltöztethetők.
+**Hátralévő: kb. 2–3 hét** a teljes funkcióparitásig. A Worker már most használható webes felülettel és API-val (pl. Home Assistant integráció, mobilappok), és a meglévő adatok átköltöztethetők; a hiányzó részek (2FA, SSO, AI, költségtörténet) nélkül is.
 
 ### Cron-megfeleltetés
 

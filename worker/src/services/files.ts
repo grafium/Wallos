@@ -240,3 +240,22 @@ export async function deleteUnusedLogos(env: Env): Promise<{ deleted: string[]; 
   } while (cursor);
   return { deleted, kept };
 }
+
+/**
+ * Deletes an account: every per-user table cascades from user(id), and the
+ * account's logos, icons and avatar go too unless a clone elsewhere uses them.
+ * Returns false when there was no such user.
+ */
+export async function deleteUserAccount(env: Env, userId: number): Promise<boolean> {
+  const [logos, avatar] = await env.DB.batch<Record<string, string | null>>([
+    env.DB.prepare(
+      "SELECT logo AS name FROM subscriptions WHERE user_id = ?1 UNION SELECT logo_variant FROM subscriptions WHERE user_id = ?1 UNION SELECT icon FROM payment_methods WHERE user_id = ?1",
+    ).bind(userId),
+    env.DB.prepare("SELECT avatar FROM user WHERE id = ?").bind(userId),
+  ]);
+  const result = await env.DB.prepare("DELETE FROM user WHERE id = ?").bind(userId).run();
+  if (result.meta.changes === 0) return false;
+  await deleteLogosIfUnused(env, (logos?.results ?? []).map((r) => r.name));
+  await deleteAvatarIfUnused(env, avatar?.results[0]?.avatar);
+  return true;
+}

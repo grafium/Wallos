@@ -4,7 +4,7 @@ import { ADMIN_USER_ID } from "../../env";
 import { emailConfigured } from "../../lib/email";
 import { registerSchema } from "../../lib/schemas";
 import { registerUser } from "../../services/accounts";
-import { deleteAvatarIfUnused, deleteLogosIfUnused, deleteUnusedLogos } from "../../services/files";
+import { deleteUnusedLogos, deleteUserAccount } from "../../services/files";
 import { WORKER_VERSION } from "../../version";
 import type { UiCtx } from "../context";
 import { userT } from "./user";
@@ -81,19 +81,7 @@ routes.post("/endpoints/admin/deleteuser.php", async (c) => {
   const id = Number((await jsonBody(c)).userId);
   if (!Number.isInteger(id) || id <= 0 || id === ADMIN_USER_ID) return c.json({ success: false, message: t("error") });
 
-  // Every per-user table cascades from user(id); the files go too unless a clone elsewhere uses them.
-  const db = c.env.DB;
-  const [logos, avatar] = await db.batch<Record<string, string | null>>([
-    db
-      .prepare(
-        "SELECT logo AS name FROM subscriptions WHERE user_id = ?1 UNION SELECT logo_variant FROM subscriptions WHERE user_id = ?1 UNION SELECT icon FROM payment_methods WHERE user_id = ?1",
-      )
-      .bind(id),
-    db.prepare("SELECT avatar FROM user WHERE id = ?").bind(id),
-  ]);
-  await db.prepare("DELETE FROM user WHERE id = ?").bind(id).run();
-  await deleteLogosIfUnused(c.env, (logos?.results ?? []).map((r) => r.name));
-  await deleteAvatarIfUnused(c.env, avatar?.results[0]?.avatar);
+  await deleteUserAccount(c.env, id);
   return c.json({ success: true, message: t("success") });
 });
 

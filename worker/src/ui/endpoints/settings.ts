@@ -3,7 +3,7 @@ import type { AppBindings } from "../../env";
 import { ADMIN_USER_ID } from "../../env";
 import { readBody } from "../../lib/http";
 import { refreshUserRates } from "../../services/exchange-rates";
-import { deleteAvatarIfUnused, deleteLogosIfUnused, fetchImage, MAX_UPLOAD_BYTES, UploadError } from "../../services/files";
+import { deleteLogosIfUnused, deleteUserAccount, fetchImage, MAX_UPLOAD_BYTES, UploadError } from "../../services/files";
 import { searchLogos } from "../../services/logo-search";
 import { updateSettings } from "../../services/settings";
 import { storeLogoImage } from "../../routes/uploads";
@@ -472,19 +472,10 @@ routes.get("/endpoints/settings/fixer_usage.php", (c) => c.json({ success: false
  */
 routes.post("/endpoints/settings/deleteaccount.php", async (c) => {
   const t = tr(c);
-  const db = c.env.DB;
   const userId = c.get("user").id;
   const requested = id((await jsonBody(c)).userId);
   if (requested === null || requested === ADMIN_USER_ID || requested !== userId) return failed(c, t("error"));
 
-  const [logos, avatar] = await db.batch<Record<string, string | null>>([
-    db.prepare(
-      "SELECT logo AS name FROM subscriptions WHERE user_id = ?1 UNION SELECT logo_variant FROM subscriptions WHERE user_id = ?1 UNION SELECT icon FROM payment_methods WHERE user_id = ?1",
-    ).bind(userId),
-    db.prepare("SELECT avatar FROM user WHERE id = ?").bind(userId),
-  ]);
-  await db.prepare("DELETE FROM user WHERE id = ?").bind(userId).run();
-  await deleteLogosIfUnused(c.env, (logos?.results ?? []).map((r) => r.name));
-  await deleteAvatarIfUnused(c.env, avatar?.results[0]?.avatar);
+  await deleteUserAccount(c.env, userId);
   return done(c, t("success"));
 });

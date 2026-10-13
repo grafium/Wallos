@@ -2,14 +2,14 @@
 
 A Wallos előfizetés-követő Cloudflare Workers + D1 változata. A felmérést és az ütemtervet lásd: [ROADMAP.md](./ROADMAP.md).
 
-Jelenleg (4. fázis után) egy JSON API: fiókok, profil és beállítások, előfizetések, kategóriák, háztartás, fizetési módok, devizák, statisztika és költségvetés, admin, export, értesítések 11 csatornán, e-mail (Resend), árfolyam-frissítés, logók/ikonok/avatarok R2-ben és logókereső, valamint a PHP Wallos `api/**/*.php` végpontjai kompatibilis formában. Egy meglévő PHP Wallos adatbázis importálható.
+Jelenleg (5. fázis után) a PHP Wallos webes felülete ugyanazokon a címeken (`index.php`, `subscriptions.php`, `stats.php`, `settings.php` …), és mögötte egy JSON API: fiókok, profil és beállítások, előfizetések, kategóriák, háztartás, fizetési módok, devizák, statisztika és költségvetés, admin, export, értesítések 11 csatornán, e-mail (Resend), árfolyam-frissítés, logók/ikonok/avatarok R2-ben és logókereső, valamint a PHP Wallos `api/**/*.php` végpontjai kompatibilis formában. Egy meglévő PHP Wallos adatbázis importálható.
 
 ## Fejlesztés
 
 ```sh
 npm install
 npm run db:migrate:local   # helyi D1 (.wrangler/)
-npm run dev                # http://localhost:8787
+npm run dev                # http://localhost:8787 (előtte a build:assets a public/-ba másolja a CSS/JS/képeket)
 npm test                   # Vitest a Workers runtime-ban, helyi D1-gyel
 npm run typecheck
 ```
@@ -31,7 +31,9 @@ npm run deploy
 
 **Cron.** Óránként fut egy trigger: az emlékeztetők a felhasználó saját időzónája szerint 09:00-kor (fizetés) és 08:00-kor (lemondás) mennek ki, a napi feladatok UTC 01:00 (következő fizetési dátumok), 02:00 (árfolyamok) és 03:00 (takarítás) órakor futnak. Az ingyenes Workers csomag egy cron-futásban 50 kimenő hívást enged; sok felhasználónál vagy csatornánál a fizetős csomag kell.
 
-Az első regisztrált felhasználó lesz az admin. Utána a regisztráció zárva marad, amíg az admin meg nem nyitja (`PATCH /api/admin/settings` → `registrations_open`), vagy az admin maga vesz fel felhasználót (`POST /api/admin/users`).
+**Webes felület.** A `npm run build:assets` (a `dev`, `test` és `deploy` előtt automatikusan fut) a repó gyökeréből a `styles/`, `scripts/`, `images/` és `libs/` könyvtárat a `public/`-ba másolja; ezeket a Workers Static Assets szolgálja ki, az oldalakat a Worker rendereli. A böngésző HttpOnly `wallos_session` cookie-val és CSRF-tokennel dolgozik. Nem elérhető még: TOTP, OIDC, AI-javaslatok (a gombok jelzik); a mentés JSON-export zip-ben, a visszaállítás az importálóval megy.
+
+Az első regisztrált felhasználó lesz az admin (a felületen a `registration.php` űrlapon, vagy `POST /api/auth/register`). Utána a regisztráció zárva marad, amíg az admin meg nem nyitja (`PATCH /api/admin/settings` → `registrations_open`), vagy az admin maga vesz fel felhasználót (`POST /api/admin/users`).
 
 ## Átköltözés PHP Wallosról
 
@@ -52,7 +54,7 @@ npx wrangler d1 execute wallos --remote --file import.sql
   ```sh
   node scripts/upload-files.ts /path/to/wallos      # a PHP telepítés könyvtára; --dry-run: csak listáz
   ```
-- Még nem jön át (jelentésben látszik, melyik fázisban jön): TOTP, OIDC, AI-beállítások, éves költségtörténet. A logó- és avatarfájlokat (`images/uploads/`) a 4. fázis viszi R2-be.
+- Még nem jön át (jelentésben látszik, melyik fázisban jön): TOTP, OIDC, AI-beállítások, éves költségtörténet.
 
 ## Hitelesítés
 
@@ -115,7 +117,7 @@ Minden válasz a Wallos-borítékot követi: `{ "success": bool, "title": string
 
 ### PHP Wallos kompatibilitás
 
-Ezek a régi útvonalak ugyanazt a választ adják, mint a PHP API: `/api/subscriptions/get_subscriptions.php`, `get_subscription.php`, `set_subscriptions.php` (`action=add|edit|delete`), `get_monthly_cost.php`, `/api/categories/get_categories.php`, `/api/currencies/get_currencies.php`, `/api/payment_methods/get_payment_methods.php`, `/api/household/get_household.php`, `/api/subscriptions/get_period_budget.php`, `/api/users/get_user.php`, `/api/users/set_budget.php`, `/api/settings/get_settings.php`, `/api/settings/set_settings.php`, `/api/admin/get_admin_settings.php`, `/api/admin/set_admin_settings.php`, `/api/notifications/get_notification_settings.php`, `/api/fixer/get_fixer.php`, `/api/fixer/set_fixer.php`, `/api/status/version.php`.
+Ezek a régi útvonalak ugyanazt a választ adják, mint a PHP API: `/api/subscriptions/get_subscriptions.php`, `get_subscription.php`, `set_subscriptions.php` (`action=add|edit|delete`), `get_monthly_cost.php`, `/api/categories/get_categories.php`, `/api/currencies/get_currencies.php`, `/api/payment_methods/get_payment_methods.php`, `/api/household/get_household.php`, `/api/subscriptions/get_period_budget.php`, `/api/users/get_user.php`, `/api/users/set_budget.php`, `/api/settings/get_settings.php`, `/api/settings/set_settings.php`, `/api/admin/get_admin_settings.php`, `/api/admin/set_admin_settings.php`, `/api/notifications/get_notification_settings.php`, `/api/fixer/get_fixer.php`, `/api/fixer/set_fixer.php`, `/api/status/version.php`, `/api/subscriptions/get_ical_feed.php` (iCal).
 
 ## Felépítés
 
@@ -127,7 +129,9 @@ src/services/        előfizetés-, fiók- és statisztikalogika
 src/routes/          HTTP útvonalak (REST + PHP-kompatibilis)
 src/cron/            óránkénti cron-elosztó és napi feladatok
 src/notifications/   csatornák és emlékeztetők
+src/ui/              webes felület: oldalak (Hono JSX), endpoints/*.php a PHP JS-éhez, i18n, PWA
+public/              statikus fájlok (generált, build:assets)
 src/import/          PHP Wallos adatbázis → D1 SQL átalakítás
-scripts/             importáló és fájlmásoló CLI, fixture-generátorok
+scripts/             importáló, fájlmásoló, asset-build és i18n-konverter, fixture-generátorok
 test/                Vitest (Workers runtime, helyi D1); fixtures/php-wallos.json valódi PHP-ból
 ```
