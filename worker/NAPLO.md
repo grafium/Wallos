@@ -143,4 +143,5 @@ Minden munka 2026-10-13-án készült.
 - `setup:cloudflare` lefutott: D1 adatbázis `77fe2741-2dfa-43b1-9a6a-db5371ed1c87`, a megrendelő commitolta (`6ead322`).
 - A CI ezen a commiton elbukott: a `deploy-config` teszt a helyőrző azonosítót várta. Ez a teszt hibája volt, nem a telepítésé; javítva (`d61a855`), a CI zöld.
 - `npm run check:deployment -- https://wallos.grafium.workers.dev`: **8/8 zöld, verzió 0.8.0** (health és adatbázis, statikus fájlok, belépési átirányítás, belépési oldal, manifest, API-védelem, biztonsági fejlécek, a mentések nem publikusak).
-- Nyitott: a táblalista visszaigazolása (a 0006–0007 migrációk), az első admin regisztrációja, Resend (`RESEND_API_KEY`, `EMAIL_FROM`), opcionálisan saját domain, GitHub-ról telepítés, adatátköltöztetés, az `ELESITES.md` 11. ellenőrzőlistája.
+- `npx wrangler d1 migrations list DB --remote`: **„No migrations to apply”**, tehát mind a 7 migráció lefutott (az idézőjeles táblalista-lekérdezést a macOS zsh szétszedte, ez a parancs idézőjel nélkül ugyanazt igazolja).
+- Nyitott: az első admin regisztrációja, Resend (`RESEND_API_KEY`, `EMAIL_FROM`), opcionálisan saját domain, GitHub-ról telepítés, adatátköltöztetés, az `ELESITES.md` 11. ellenőrzőlistája.
