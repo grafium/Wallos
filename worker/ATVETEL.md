@@ -1,10 +1,11 @@
 # Átadás-átvétel — hol tart a projekt, hogyan lehet folytatni
 
-Állapot: **2026-10-13, 0.6.0 verzió, a 6. fázis kész** (`610c2d6`, CI zöld; 2FA, OIDC, belépés-korlátozás). Utolsó mentés: a 6. fázis után, tiszta munkakönyvtárral. Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
+Állapot: **2026-10-13, 0.7.0 verzió, a 7. fázis kész** – a funkcióparitás elérve (éves költségtörténet, AI-javaslatok); hátra csak az élesítés van. Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
 
 ## 1. Mi működik
 
 - **Webes felület** a PHP-val azonos címeken: főoldal, előfizetések, naptár, statisztika, beállítások (értesítésekkel és fizetési módokkal), profil, admin, névjegy, belépés, regisztráció, jelszó-visszaállítás, e-mail-megerősítés, 29 nyelv, PWA.
+- **Statisztika és AI:** heti éves költség-pillanatkép (történeti grafikon), AI-javaslatok hat szolgáltatóval (köztük opcionálisan Cloudflare Workers AI), kategóriafordítás, kézi/heti/havi futtatás.
 - **Hitelesítés:** jelszó (bcrypt → PBKDF2), kétlépcsős azonosítás (TOTP + mentőkódok, `totp.php`), OIDC egyszeri bejelentkezés (SSO-only móddal), belépés-korlátozás, CSRF-védett cookie-s session, API-kulcs.
 - **JSON API** (`/api/...`) Bearer tokennel vagy API-kulccsal, valamint a PHP `api/**/*.php` végpontjai kompatibilis formában (Home Assistant, mobilappok).
 - **Háttérfeladatok:** óránkénti cron — emlékeztetők a felhasználó időzónájában, következő fizetési dátumok, árfolyamok, takarítás.
@@ -15,11 +16,9 @@
 
 | Fázis | Teendő | Hol kell hozzányúlni |
 |---|---|---|
-| 7 | Éves költségtörténet (heti cron, PHP: `storetotalyearlycost.php`) | új migráció + `src/cron/`, a statisztika-oldal történeti grafikonja (`src/ui/pages/stats-extra.ts`) |
-| 7 | AI-javaslatok (OpenAI/Gemini/Workers AI) | `src/ui/endpoints/ai.ts` (`AI_NOT_AVAILABLE`); a beállítás-felület kész (`src/ui/pages/settings.tsx`) |
 | 8 | Élesítés | lásd a 3. szakaszt; plusz egyedi domain, Access/WAF, D1 Time Travel + export R2-be, deploy a GitHub Actionsből |
 
-Hátralévő becslés: kb. 1–2 hét (ROADMAP 3. szakasz). A 6. fázis kész (ROADMAP 2f).
+Hátralévő becslés: kb. 0,5–1 hét, csak az élesítés (ROADMAP 3. szakasz). A 7. fázis kész (ROADMAP 2g); a funkcióparitás megvan, a dokumentált eltérésekkel.
 
 ## 3. Élesítés (még nem történt meg)
 
@@ -61,11 +60,13 @@ Opcionális: a Cloudflare Images binding bekapcsolása (`wrangler.jsonc`, `image
 - **SSO-only kizárás:** ha csak OIDC-belépés engedélyezett és a szolgáltató nem elérhető, a jelszavas belépés a `OIDC_DISABLE_PASSWORD_LOGIN=false` változóval vagy `UPDATE oauth_settings SET password_login_disabled = 0` D1-paranccsal kapcsolható vissza.
 - **Elveszett 2FA:** mentőkóddal lehet belépni; ha az sincs: `UPDATE user SET totp_enabled = 0 WHERE id = …; DELETE FROM totp WHERE user_id = …` (D1).
 - **OIDC redirect URL:** a szolgáltatónál a Wallos címét kell visszatérési címként megadni (pl. `https://wallos.example.com/`); a Worker bármely oldalra érkező `?code&state`-et OIDC-visszatérésként kezel.
+- **AI és helyi hálózat:** Ollama vagy saját OpenAI-kompatibilis szerver csak nyilvános címen működik (a Worker nem látja a LAN-t); Cloudflare Tunnel vagy Workers AI (`"ai": { "binding": "AI" }` a `wrangler.jsonc`-ben) a megoldás.
+- **Ütemezett AI:** óránként legfeljebb 5 esedékes felhasználó; sok felhasználónál a heti futás több órán át tart, ez szándékos (egy kérés akár percekig tarthat).
 - A füstteszt 2FA-része a második belépésnél megvárja a következő 30 másodperces időlépést, így kb. fél percig tart; `SKIP_2FA=1` kihagyja.
 
 ## 6. Folytatás új sessionben
 
 1. `git fetch origin claude/zen-goldberg-0hbajd && git checkout claude/zen-goldberg-0hbajd`
 2. Olvasd el: `worker/SZABALYOK.md`, `worker/ATVETEL.md` (ez), `worker/ROADMAP.md` 3. szakasz.
-3. `cd worker && npm install && npm run typecheck && npm test` — a kiinduló állapot: 221 zöld teszt.
-4. Javasolt indító üzenet a megrendelőtől: „Mehet a 7. fázis” (éves költségtörténet, AI-javaslatok), vagy „élesítsük” (3. szakasz).
+3. `cd worker && npm install && npm run typecheck && npm test` — a kiinduló állapot: 233 zöld teszt.
+4. Javasolt indító üzenet a megrendelőtől: „Mehet a 8. fázis” / „élesítsük” (3. szakasz: Cloudflare-fiók, D1 és R2 létrehozása, titkok, deploy, adatátköltöztetés).

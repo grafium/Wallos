@@ -208,3 +208,42 @@ describe("two-factor and OIDC data", () => {
     expect(row).toEqual({ client_secret: "a&amp;b", authorization_url: "https://idp.example.com/auth?x=1&y=2", auto_create_user: 1, require_email_verified: 1 });
   });
 });
+
+describe("history and AI data", () => {
+  const passwordHash = (fixture as unknown as SourceTables).user!.find((u) => u.username === "bob")!.password;
+  const source: SourceTables = {
+    user: [{ id: 60, username: "hist60", email: "hist60@example.com", password: passwordHash }, { id: 61, username: "hist61", email: "hist61@example.com", password: passwordHash }],
+    total_yearly_cost: [
+      { id: 1, user_id: 60, date: "2025-01-06", cost: 1200, currency: "1" },
+      { id: 2, user_id: 60, date: "2025-01-06", cost: 1300, currency: "1" },
+      { id: 3, user_id: 60, date: "not a date", cost: 1, currency: "1" },
+      { id: 4, user_id: 99, date: "2025-01-06", cost: 1, currency: "1" },
+    ],
+    ai_settings: [
+      { id: 1, user_id: 60, type: "ollama", enabled: 1, api_key: "", model: "llama3", url: "http://192.168.1.10:11434", run_schedule: "weekly", last_successful_run: "2025-01-06 03:30:00" },
+      { id: 2, user_id: 60, type: "chatgpt", enabled: 1, api_key: "sk", model: "gpt", url: "", run_schedule: "monthly" },
+      { id: 3, user_id: 61, type: "gemini", enabled: 1, api_key: "g", model: "", url: "", run_schedule: "sometimes" },
+    ],
+    ai_recommendations: [
+      { id: 1, user_id: 60, type: "subscription", title: "Cancel &amp; save", description: "Because.", savings: "5 EUR/month" },
+      { id: 2, user_id: 60, type: "subscription", title: "", description: "No title" },
+    ],
+  };
+  const imported = buildImport(source);
+
+  it("keeps one point per day, the first AI settings row, and the recommendations", async () => {
+    expect(imported.report.notImported).toEqual({});
+    expect(imported.report.imported).toMatchObject({ total_yearly_cost: 1, ai_settings: 2, ai_recommendations: 1 });
+    expect(imported.report.skipped).toMatchObject({ total_yearly_cost: 3, ai_settings: 1, ai_recommendations: 1 });
+    expect(imported.report.warnings.join("\n")).toMatch(/User 60's AI provider \(http:\/\/192\.168\.1\.10:11434\) is on a private network/);
+    await env.DB.batch(imported.statements.map((statement) => env.DB.prepare(statement)));
+
+    expect((await env.DB.prepare("SELECT date, cost FROM total_yearly_cost WHERE user_id = 60").all()).results).toEqual([{ date: "2025-01-06", cost: 1300 }]);
+    const ai = await env.DB.prepare("SELECT user_id, type, enabled, run_schedule FROM ai_settings WHERE user_id IN (60, 61) ORDER BY user_id").all();
+    expect(ai.results).toEqual([
+      { user_id: 60, type: "ollama", enabled: 1, run_schedule: "weekly" },
+      { user_id: 61, type: "gemini", enabled: 0, run_schedule: "manual" }, // no model: cannot run
+    ]);
+    expect(await env.DB.prepare("SELECT title FROM ai_recommendations WHERE user_id = 60").first("title")).toBe("Cancel & save");
+  });
+});

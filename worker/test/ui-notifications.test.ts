@@ -313,37 +313,6 @@ describe("notification endpoints: web push", () => {
   });
 });
 
-describe("AI endpoints", () => {
-  it("say AI is not available yet", async () => {
-    const browser = await browserSession("ai");
-    for (const name of ["save_settings", "fetch_models", "generate_recommendations", "translate_categories"]) {
-      const res = await endpoint(browser, `/endpoints/ai/${name}.php`, { json: { type: "chatgpt", api_key: "k" } });
-      expect(res.status, name).toBe(200);
-      expect(res.json, name).toEqual({ success: false, message: expect.stringMatching(/not available/) });
-    }
-    expect(outbound).toHaveLength(0);
-    expect((await endpoint(browser, "/endpoints/ai/delete_recommendation.php", { json: { id: 0 } })).json).toEqual({ success: false, message: "Error" });
-    expect((await endpoint(browser, "/endpoints/ai/delete_recommendation.php", { json: { id: 5 } })).json!.message).toMatch(/not available/);
-  });
-
-  it("deletes the user's own recommendations once the table exists", async () => {
-    const alice = await browserSession("aia");
-    const bob = await browserSession("aib");
-    await env.DB.prepare(
-      "CREATE TABLE IF NOT EXISTS ai_recommendations (id INTEGER PRIMARY KEY, user_id INTEGER, type TEXT, title TEXT, description TEXT, savings TEXT)",
-    ).run();
-    try {
-      const inserted = await env.DB.prepare("INSERT INTO ai_recommendations (user_id, type, title, description, savings) VALUES (?, 'subscription', 't', 'd', 's')").bind(alice.userId).run();
-      const id = inserted.meta.last_row_id;
-      expect((await endpoint(bob, "/endpoints/ai/delete_recommendation.php", { json: { id } })).json).toEqual({ success: false, message: "Error" });
-      expect((await endpoint(alice, "/endpoints/ai/delete_recommendation.php", { json: { id: String(id) } })).json).toEqual({ success: true, message: "Success" });
-      expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM ai_recommendations").first("n")).toBe(0);
-    } finally {
-      await env.DB.prepare("DROP TABLE ai_recommendations").run();
-    }
-  });
-});
-
 /** Reads the single stored entry of the zip the backup returns. */
 function unzipSingle(bytes: Uint8Array): { name: string; content: string } {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);

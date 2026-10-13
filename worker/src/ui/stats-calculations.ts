@@ -103,7 +103,7 @@ export async function calculateStats(c: UiCtx, t: Translate, filters: StatsFilte
     db.prepare("SELECT id, rate FROM currencies WHERE user_id = ?").bind(userId),
     db.prepare("SELECT main_currency, budget, period_budget FROM user WHERE id = ?").bind(userId),
     db.prepare("SELECT 1 AS ok FROM fixer WHERE user_id = ?").bind(userId),
-    db.prepare("SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'total_yearly_cost'"),
+    db.prepare("SELECT date, cost FROM total_yearly_cost WHERE user_id = ? ORDER BY date").bind(userId),
   ]);
 
   const named = (rows: Record<string, unknown>[] | undefined) =>
@@ -234,12 +234,11 @@ export async function calculateStats(c: UiCtx, t: Translate, filters: StatsFilte
     ];
   }
 
-  // Yearly cost history arrives with phase 7 (total_yearly_cost).
-  let totalMonthlyCostDataPoints: Stats["totalMonthlyCostDataPoints"] = [];
-  if (yearlyRes?.results.length) {
-    const history = await db.prepare("SELECT date, cost FROM total_yearly_cost WHERE user_id = ? ORDER BY date").bind(userId).all<{ date: string; cost: number }>();
-    totalMonthlyCostDataPoints = history.results.map((r) => ({ label: String(r.date), y: Math.round((r.cost / 12) * 100) / 100 }));
-  }
+  // The weekly yearly-cost snapshots (src/services/cost-history.ts), shown as monthly cost.
+  const totalMonthlyCostDataPoints: Stats["totalMonthlyCostDataPoints"] = (yearlyRes?.results ?? []).map((r) => ({
+    label: String(r.date),
+    y: Math.round((Number(r.cost) / 12) * 100) / 100,
+  }));
 
   return {
     categories,

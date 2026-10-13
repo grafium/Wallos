@@ -2,7 +2,7 @@
 
 A Wallos előfizetés-követő Cloudflare Workers + D1 változata. A felmérést és az ütemtervet lásd: [ROADMAP.md](./ROADMAP.md); munkanapló: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); átadás-átvétel és folytatás: [ATVETEL.md](./ATVETEL.md).
 
-Jelenleg (6. fázis után) a PHP Wallos webes felülete, kétlépcsős azonosítással (TOTP) és OIDC egyszeri bejelentkezéssel, ugyanazokon a címeken (`index.php`, `subscriptions.php`, `stats.php`, `settings.php` …), és mögötte egy JSON API: fiókok, profil és beállítások, előfizetések, kategóriák, háztartás, fizetési módok, devizák, statisztika és költségvetés, admin, export, értesítések 11 csatornán, e-mail (Resend), árfolyam-frissítés, logók/ikonok/avatarok R2-ben és logókereső, valamint a PHP Wallos `api/**/*.php` végpontjai kompatibilis formában. Egy meglévő PHP Wallos adatbázis importálható.
+Jelenleg (7. fázis után) a PHP Wallos teljes webes felülete – kétlépcsős azonosítással (TOTP), OIDC egyszeri bejelentkezéssel, éves költségtörténettel és AI-javaslatokkal – ugyanazokon a címeken (`index.php`, `subscriptions.php`, `stats.php`, `settings.php` …), és mögötte egy JSON API: fiókok, profil és beállítások, előfizetések, kategóriák, háztartás, fizetési módok, devizák, statisztika és költségvetés, admin, export, értesítések 11 csatornán, e-mail (Resend), árfolyam-frissítés, logók/ikonok/avatarok R2-ben és logókereső, AI-javaslatok, valamint a PHP Wallos `api/**/*.php` végpontjai kompatibilis formában. Egy meglévő PHP Wallos adatbázis importálható.
 
 ## Fejlesztés
 
@@ -29,9 +29,11 @@ npm run deploy
 
 **Képek.** A feltöltött logók, ikonok és avatarok a `wallos-files` R2 bucketbe kerülnek, és a PHP-val azonos címen érhetők el (`/images/uploads/logos/...`). Ha a fiókban be van kapcsolva a Cloudflare Images, a `wrangler.jsonc`-ben az `images` binding bekapcsolásával a feltöltések PNG-re alakulnak és átméreteződnek (logó 270×84, ikon 140×96, avatar 160×160); nélküle az eredeti fájl kerül tárolásra (max. 5 MB, PNG/JPEG/GIF/WebP/AVIF; SVG nem). A háttéreltávolítás és a sötét/világos témához készülő logóvariáns PNG-képeken mindkét esetben működik.
 
-**Cron.** Óránként fut egy trigger: az emlékeztetők a felhasználó saját időzónája szerint 09:00-kor (fizetés) és 08:00-kor (lemondás) mennek ki, a napi feladatok UTC 01:00 (következő fizetési dátumok), 02:00 (árfolyamok) és 03:00 (takarítás) órakor futnak. Az ingyenes Workers csomag egy cron-futásban 50 kimenő hívást enged; sok felhasználónál vagy csatornánál a fizetős csomag kell.
+**AI-javaslatok.** A beállítások oldalon felhasználónként: ChatGPT, Gemini, OpenRouter (API-kulccsal), Ollama vagy bármely OpenAI-kompatibilis szerver (URL-lel), illetve – ha a `wrangler.jsonc`-ben be van kapcsolva az `ai` binding – Cloudflare Workers AI kulcs nélkül. Futtatás kézzel, hetente vagy havonta; a javaslatok a főoldalon jelennek meg, a kategóriák nevei a felhasználó nyelvére fordíthatók. A tárolt API-kulcs soha nem jut vissza a böngészőbe (`********`). Ollama és saját szerver csak nyilvánosan elérhető címen működik (a Worker nem látja a helyi hálózatot; megoldás: Cloudflare Tunnel).
 
-**Webes felület.** A `npm run build:assets` (a `dev`, `test` és `deploy` előtt automatikusan fut) a repó gyökeréből a `styles/`, `scripts/`, `images/` és `libs/` könyvtárat a `public/`-ba másolja; ezeket a Workers Static Assets szolgálja ki, az oldalakat a Worker rendereli. A böngésző HttpOnly `wallos_session` cookie-val és CSRF-tokennel dolgozik. Nem elérhető még: AI-javaslatok (a gombok jelzik); a mentés JSON-export zip-ben, a visszaállítás az importálóval megy.
+**Cron.** Óránként fut egy trigger: az emlékeztetők a felhasználó saját időzónája szerint 09:00-kor (fizetés) és 08:00-kor (lemondás) mennek ki, a napi feladatok UTC 01:00 (következő fizetési dátumok; hétfőnként az éves költség pillanatképe a statisztika történeti grafikonjához), 02:00 (árfolyamok) és 03:00 (takarítás) órakor futnak; az esedékes ütemezett AI-javaslatok óránként néhány felhasználónként készülnek. Az ingyenes Workers csomag egy cron-futásban 50 kimenő hívást enged; sok felhasználónál vagy csatornánál a fizetős csomag kell.
+
+**Webes felület.** A `npm run build:assets` (a `dev`, `test` és `deploy` előtt automatikusan fut) a repó gyökeréből a `styles/`, `scripts/`, `images/` és `libs/` könyvtárat a `public/`-ba másolja; ezeket a Workers Static Assets szolgálja ki, az oldalakat a Worker rendereli. A böngésző HttpOnly `wallos_session` cookie-val és CSRF-tokennel dolgozik. A mentés JSON-export zip-ben, a visszaállítás az importálóval megy.
 
 Az első regisztrált felhasználó lesz az admin (a felületen a `registration.php` űrlapon, vagy `POST /api/auth/register`). Utána a regisztráció zárva marad, amíg az admin meg nem nyitja (`PATCH /api/admin/settings` → `registrations_open`), vagy az admin maga vesz fel felhasználót (`POST /api/admin/users`).
 
@@ -54,7 +56,7 @@ npx wrangler d1 execute wallos --remote --file import.sql
   ```sh
   node scripts/upload-files.ts /path/to/wallos      # a PHP telepítés könyvtára; --dry-run: csak listáz
   ```
-- A kétlépcsős azonosítás (a mentőkódok csak hash-ként kerülnek át, a régiek továbbra is működnek), az OIDC-beállítások és a fiókok OIDC-azonosítói is átjönnek. Még nem jön át (a jelentés mutatja): AI-beállítások, éves költségtörténet.
+- A kétlépcsős azonosítás (a mentőkódok csak hash-ként kerülnek át, a régiek továbbra is működnek), az OIDC-beállítások, a fiókok OIDC-azonosítói, az éves költségtörténet, az AI-beállítások és a meglévő AI-javaslatok is átjönnek. A helyi hálózaton futó Ollamára a jelentés figyelmeztet.
 
 ## Hitelesítés
 
@@ -102,6 +104,13 @@ Minden válasz a Wallos-borítékot követi: `{ "success": bool, "title": string
 | GET | `/api/stats/monthly-cost?month=&year=` | Egy naptári hónap tényleges költsége fődevizában |
 | GET | `/api/stats/summary` | Havi/éves átlag, kategóriánkénti bontás |
 | GET | `/api/stats/period-budget?reference_date=` | Az aktuális költségvetési időszak: mennyi kell még, marad-e keret |
+| GET | `/api/stats/history` | Az éves költség heti pillanatképei (`date`, `yearly_cost`, `monthly_cost`) |
+| GET / PUT | `/api/ai/settings` | AI-beállítások: `enabled`, `type` (`chatgpt`, `gemini`, `openrouter`, `ollama`, `openai-compatible`, `workers-ai`), `api_key` (`********` megtartja), `url`, `model`, `run_schedule` (`manual`, `weekly`, `monthly`) |
+| POST | `/api/ai/models` | `type`, `api_key`, `url` → a szolgáltató modelljei |
+| GET | `/api/ai/recommendations` | A tárolt javaslatok |
+| POST | `/api/ai/recommendations/generate` | Új javaslatok most (a régieket lecseréli) |
+| DELETE | `/api/ai/recommendations/:id` | Egy javaslat törlése |
+| POST | `/api/ai/translate-categories` | A kategóriák nevének fordítása a felhasználó nyelvére (nem angol nyelvnél) |
 | GET | `/api/notifications` | Értesítési beállítások és csatornák (a titkos mezők `********`-ként) |
 | PATCH | `/api/notifications/settings` | `days` (hány nappal előtte), `period_summary_at_period_start` |
 | PUT / DELETE | `/api/notifications/channels/:channel` | `enabled` + a csatorna mezői; `********` megtartja a tárolt titkot. Csatornák: `email` (`other_emails`), `discord` (`webhook_url`, `bot_username`, `bot_avatar_url`), `gotify` (`url`, `token`), `telegram` (`bot_token`, `chat_id`), `pushover` (`user_key`, `token`), `ntfy` (`host`, `topic`, `headers`), `webhook` (`url`, `request_method`, `headers`, `payload`, `cancelation_payload`), `mattermost` (`webhook_url`, `bot_username`, `bot_icon_emoji`), `pushplus` (`token`), `serverchan` (`sendkey`), `push` |
@@ -137,6 +146,7 @@ src/services/        előfizetés-, fiók- és statisztikalogika
 src/routes/          HTTP útvonalak (REST + PHP-kompatibilis)
 src/cron/            óránkénti cron-elosztó és napi feladatok
 src/notifications/   csatornák és emlékeztetők
+src/services/ai.ts   AI-szolgáltatók, javaslatok, kategóriafordítás
 src/ui/              webes felület: oldalak (Hono JSX), endpoints/*.php a PHP JS-éhez, i18n, PWA
 public/              statikus fájlok (generált, build:assets)
 src/import/          PHP Wallos adatbázis → D1 SQL átalakítás

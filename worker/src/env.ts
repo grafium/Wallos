@@ -16,6 +16,8 @@ export interface Env {
   EMAIL_FROM?: string;
   /** Public base URL used in e-mailed links when the admin has not set server_url. */
   APP_URL?: string;
+  /** Optional Workers AI binding: offers "Workers AI" as a provider for AI recommendations. */
+  AI?: Ai;
   /** Optional Workers Rate Limiting binding checked before every login attempt (per client address). */
   LOGIN_RATE_LIMITER?: RateLimit;
   /**

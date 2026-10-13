@@ -2,6 +2,8 @@ import type { Env } from "../env";
 import { runReminders } from "../notifications/reminders";
 import { purgeExpiredResets } from "../services/email-flows";
 import { runExchangeRates } from "../services/exchange-rates";
+import { runScheduledRecommendations } from "../services/ai";
+import { storeTotalYearlyCost } from "../services/cost-history";
 import { purgeLoginState } from "../services/login-guard";
 import { purgeExpiredSessions, updateNextPayments } from "./update-next-payment";
 
@@ -11,6 +13,8 @@ import { purgeExpiredSessions, updateNextPayments } from "./update-next-payment"
   fixed UTC hour:
 
     01:00  updatenextpayment.php  -> updateNextPayments, session cleanup
+           storetotalyearlycost.php (Mondays) -> storeTotalYearlyCost
+    hourly generaterecommendations.php    -> runScheduledRecommendations (when due)
     hourly                        -> expired login steps and throttle counters
     02:00  updateexchange.php     -> runExchangeRates
     03:00  cleanupresettokens.php -> purgeExpiredResets, old notification log
@@ -34,6 +38,8 @@ export async function runScheduled(env: Env, scheduledTime: number): Promise<voi
   if (hour === 1) {
     await step("updatenextpayment", () => updateNextPayments(env.DB));
     await step("sessions", () => purgeExpiredSessions(env.DB));
+    // storetotalyearlycost.php: Mondays (after the payment dates moved on).
+    if (now.getUTCDay() === 1) await step("storetotalyearlycost", () => storeTotalYearlyCost(env.DB, now.toISOString().slice(0, 10)));
   }
   // Expired login steps and throttle counters; cheap, so every hour.
   await step("loginstate", () => purgeLoginState(env.DB));
@@ -44,6 +50,9 @@ export async function runScheduled(env: Env, scheduledTime: number): Promise<voi
     await step("resettokens", () => purgeExpiredResets(env.DB));
     await step("notificationlog", () => env.DB.prepare("DELETE FROM notification_log WHERE sent_at < datetime('now', '-90 days')").run());
   }
+
+  // generaterecommendations.php: whoever is due (weekly / monthly), a few per hour.
+  await step("generaterecommendations", () => runScheduledRecommendations(env));
 
   await step("cancellation reminders", () => runReminders(env, "cancellation", now));
   await step("payment reminders", () => runReminders(env, "payment", now));

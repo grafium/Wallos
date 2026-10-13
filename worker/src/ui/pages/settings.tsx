@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { raw } from "hono/html";
 import type { AppBindings } from "../../env";
 import { todayUtc } from "../../lib/dates";
+import { maskKey } from "../../services/ai";
 import { loadUi, uiPage, type Ui, type UiCtx } from "../context";
 import { asset, js, page } from "../layout";
 import { loadNotificationData, NotificationsSection } from "./settings-notifications";
@@ -49,8 +50,8 @@ interface MemberRow {
 interface AiSettings {
   enabled?: number;
   type?: string;
-  api_key?: string;
-  url?: string;
+  api_key?: string | null;
+  url?: string | null;
   model?: string;
   run_schedule?: string;
 }
@@ -430,7 +431,7 @@ function GoogleSearchSection({ ui, apiKey }: { ui: Ui; apiKey: string }) {
   );
 }
 
-function AiSection({ ui, ai }: { ui: Ui; ai: AiSettings }) {
+function AiSection({ ui, ai, workersAi }: { ui: Ui; ai: AiSettings; workersAi: boolean }) {
   const { t } = ui;
   const type = ai.type;
   const urlVisible = type === "ollama" || type === "openai-compatible";
@@ -441,6 +442,8 @@ function AiSection({ ui, ai }: { ui: Ui; ai: AiSettings }) {
     ["openrouter", "OpenRouter"],
     ["ollama", "Local Ollama"],
     ["openai-compatible", "OpenAI Compatible"],
+    // Only when the Worker has an AI binding (src/services/ai.ts).
+    ...(workersAi || type === "workers-ai" ? ([["workers-ai", "Cloudflare Workers AI"]] as [string, string][]) : []),
   ];
   const schedules: [string, string][] = [
     ["manual", "manually"],
@@ -490,7 +493,7 @@ function AiSection({ ui, ai }: { ui: Ui; ai: AiSettings }) {
             autocomplete="off"
             class={type === "ollama" ? "hidden" : ""}
             placeholder={t("api_key")}
-            value={ai.api_key ?? ""}
+            value={maskKey(ai.api_key)}
           />
           <button type="button" id="fetchModelsButton" class="button thin" onclick="fetch_ai_models()">
             {t("test")}
@@ -792,7 +795,7 @@ routes.get("/settings.php", uiPage, async (c: UiCtx) => {
   const db = c.env.DB;
   const userId = c.get("user").id;
 
-  const [userRes, currencyRes, memberRes, categoryRes, lastRes, fixerRes, googleRes, aiTable] = await db.batch<Record<string, unknown>>([
+  const [userRes, currencyRes, memberRes, categoryRes, lastRes, fixerRes, googleRes, aiRes] = await db.batch<Record<string, unknown>>([
     db.prepare("SELECT budget, period_budget, budget_period_type, budget_period_anchor_date, main_currency FROM user WHERE id = ?").bind(userId),
     db
       .prepare(
@@ -814,7 +817,7 @@ routes.get("/settings.php", uiPage, async (c: UiCtx) => {
     db.prepare("SELECT date FROM last_exchange_update WHERE user_id = ?").bind(userId),
     db.prepare("SELECT api_key, provider FROM fixer WHERE user_id = ?").bind(userId),
     db.prepare("SELECT api_key FROM google_search WHERE user_id = ?").bind(userId),
-    db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'ai_settings'"),
+    db.prepare("SELECT enabled, type, api_key, url, model, run_schedule FROM ai_settings WHERE user_id = ?").bind(userId),
   ]);
 
   const user = userRes!.results[0] as unknown as UserRow;
@@ -824,10 +827,8 @@ routes.get("/settings.php", uiPage, async (c: UiCtx) => {
   const provider = fixer ? Number(fixer.provider) : 0;
   // Frankfurter needs no key, so a provider row is what makes conversion possible.
   const ratesConfigured = Boolean(fixer && (fixer.api_key || provider === 2));
-  // AI recommendations are not part of the Worker yet; with no table the section renders unconfigured.
-  const ai: AiSettings = aiTable?.results.length
-    ? ((await db.prepare("SELECT * FROM ai_settings WHERE user_id = ? LIMIT 1").bind(userId).first<AiSettings>()) ?? {})
-    : {};
+  // The stored key is never sent to the browser; the mask sent back keeps it (src/services/ai.ts).
+  const ai = (aiRes?.results[0] ?? {}) as AiSettings;
   const canTranslate = Boolean(ai.enabled) && Boolean(ai.model) && ui.lang !== "en";
 
   const [notifications, payments] = await Promise.all([loadNotificationData(c), loadPaymentMethods(db, userId)]);
@@ -848,7 +849,7 @@ ${PAGE_STYLE}`)}</style>
         <CurrenciesSection ui={ui} currencies={currencies} mainCurrency={user.main_currency} lastUpdate={String(lastRes!.results[0]?.date ?? "")} />
         <FixerSection ui={ui} apiKey={fixer?.api_key ?? ""} provider={provider} />
         <GoogleSearchSection ui={ui} apiKey={String(googleRes!.results[0]?.api_key ?? "")} />
-        <AiSection ui={ui} ai={ai} />
+        <AiSection ui={ui} ai={ai} workersAi={Boolean(c.env.AI)} />
         <PaymentsSection ui={ui}>
           <PaymentMethods t={t} payments={payments} />
         </PaymentsSection>

@@ -1,6 +1,6 @@
 # Munkanapló — Wallos → Cloudflare Workers + D1
 
-Időrendben: mit kért a megrendelő, mi készült el, milyen döntések születtek, és milyen hibákba futottunk bele. Ág: `claude/zen-goldberg-0hbajd` (PR-t nem nyitottunk). A részletes tartalmat lásd: [ROADMAP.md](./ROADMAP.md) (2.–2f. szakasz) és [README.md](./README.md).
+Időrendben: mit kért a megrendelő, mi készült el, milyen döntések születtek, és milyen hibákba futottunk bele. Ág: `claude/zen-goldberg-0hbajd` (PR-t nem nyitottunk). A részletes tartalmat lásd: [ROADMAP.md](./ROADMAP.md) (2.–2g. szakasz) és [README.md](./README.md).
 
 | Fázis | Commit | Tesztek | CI |
 |---|---|---|---|
@@ -12,6 +12,8 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | Napló, szabályok, átvétel, füstteszt | `ccef85b` | 198 | ✅ |
 | 6. 2FA (TOTP), OIDC SSO, belépés-korlátozás | `610c2d6` | 221 | ✅ |
 | Napló: 6. fázis commitja és CI-eredménye | `2c81926` | 221 | ✅ |
+| Mentés a 6. fázis után | `27d5a06` | 221 | ✅ |
+| 7. Éves költségtörténet, AI-javaslatok | lásd git log | 233 | — |
 
 Minden munka 2026-10-13-án készült.
 
@@ -94,3 +96,15 @@ Minden munka 2026-10-13-án készült.
 
 - A három dokumentum már a 6. fázissal együtt frissült (`610c2d6`, a commit-azonosító és a CI-eredmény a `2c81926`-ban). Most ez a bejegyzés és két új munkaszabály került be a SZABALYOK-ba (CI-eredmény csak ellenőrzés után; mit jelent a „Ments mindent”).
 - Állapot a mentéskor: 0.6.0, 221 zöld teszt, CI zöld, munkakönyvtár tiszta. Következő lépés a megrendelő döntése: 7. fázis vagy élesítés.
+
+## 7. fázis — költségtörténet és AI-javaslatok
+
+**Kérés:** „7. fázis mehet.”
+
+- Felmérés: `endpoints/cronjobs/storetotalyearlycost.php` és `generaterecommendations.php`, `includes/ai_client.php`, `endpoints/ai/*` (save_settings, fetch_models, generate_recommendations, translate_categories, delete_recommendation), `includes/stats_calculations.php` (történeti grafikon), a 000032/35/39 migrációk. Az 5. fázis felülete már előre lekérdezte ezeket a táblákat, ha léteznek; ezek a feltételek most kikerültek.
+- `migrations/0007_history_and_ai.sql`: `total_yearly_cost` (felhasználónként és naponként egy sor), `ai_settings` (felhasználónként egy, új `last_attempt`), `ai_recommendations`.
+- `src/services/cost-history.ts` (PHP-s számítás, hétfői cron, `/api/stats/history`), `src/services/ai.ts` (hat szolgáltató, köztük Workers AI; PHP-s promptok; JSON-kinyerés kódblokkból/szöveg mellől/streamből; maszkolt kulcs; ütemezés esedékességre, óránként legfeljebb 5 felhasználó, napi újrapróbálás), `src/routes/ai.ts` (`/api/ai/*`), az `endpoints/ai/*.php` élesek, a beállítás oldal maszkolt kulccsal és Workers AI opcióval, a főoldal a javaslatokkal.
+- Importáló: költségtörténet, AI-beállítások, javaslatok; figyelmeztetés helyi hálózati Ollamára.
+- Ellenőrzés: 233 teszt, typecheck, böngészős füstteszt.
+- **Hiba menet közben:** a régi `ui-notifications` teszt a „nem elérhető” állapotot rögzítette, és saját `ai_recommendations` táblát hozott létre, majd dobott el — ez a valódi migráció mellett ütközött volna; a blokk kikerült, az új `ai.test.ts` fedi le.
+- Verzió: 0.7.0. A funkcióparitás elérve; hátra a 8. fázis (élesítés).

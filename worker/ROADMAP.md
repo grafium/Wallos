@@ -49,7 +49,7 @@
 6. **Ma esedékes fizetés.** A PHP cron a ma esedékes fizetést időnként (az aktuális óra miatt) a következő ciklusra léptette. A Worker a ma esedékest ma hagyja.
 7. **Időzóna.** A PHP a konténer `TZ` változóját használja. A Worker a dátumokat UTC-ben számolja, az emlékeztetőket viszont a felhasználó saját időzónája (`user.timezone`) szerint küldi 09:00-kor és 08:00-kor (3. fázis).
 8. **D1-korlátok.** Max. 100 kötött paraméter/lekérdezés, 10 GB/adatbázis, a batch tranzakcionális. Az alapértelmezett adatokat ezért `json_each()`-csel, egy paraméterrel szúrjuk be. Wallos-méretű adatnál ezek nem szűk keresztmetszetek.
-9. **Helyi hálózati elérés.** A felhőben futó Worker nem éri el a helyi Ollama-t, Gotify-t vagy ntfy-t. Ezekhez Cloudflare Tunnel kell, a „local webhook allowlist” funkció pedig értelmét veszti.
+9. **Helyi hálózati elérés.** A felhőben futó Worker nem éri el a helyi Ollamát (AI-javaslatok), Gotify-t vagy ntfy-t. Ezekhez Cloudflare Tunnel kell, a „local webhook allowlist” funkció pedig értelmét veszti.
 10. **E-mail.** A Workers nem tud kényelmesen SMTP-t, ezért az e-mail a Resend HTTP API-ján megy, egyetlen példányszintű feladóval (`RESEND_API_KEY`, `EMAIL_FROM`) a PHP felhasználónkénti SMTP-beállításai helyett. A „TLS-hibák figyelmen kívül hagyása” opció megszűnt: a Worker mindig ellenőrzi a tanúsítványt.
 11. **API-kulcsok** a régi adatbázisban titkosítatlanok. A kompatibilitás miatt egyelőre így maradnak (egyenlőségvizsgálat), később hash-elhetők, ha a régi klienseket már nem kell támogatni.
 12. **Webhook-sablon.** A PHP csak a jegyzetet escapelte a webhook JSON-sablonjában, így egy idézőjeles név (`Say "hi"`) érvénytelen JSON-t adott. A Worker minden behelyettesített értéket JSON-escapel.
@@ -128,6 +128,16 @@
 
 **Eltérések a PHP-tól:** a mentőkódokat csak SHA-256 hash-ként tároljuk; a 2FA be- és kikapcsolása egy tranzakció; az OIDC-folyamat PKCE-t is küld; a client secret az admin oldalon és az API-ban maszkolva látszik (`********`; visszaküldve megmarad); a `OIDC_CLIENT_SECRET_FILE` helyett Worker-titok (`OIDC_CLIENT_SECRET`) használható; a „Disable login” (jelszó nélküli mód) továbbra sincs.
 
+## 2g. Elkészült a 7. fázisban
+
+- **Éves költségtörténet:** hétfőnként UTC 01:00-kor minden felhasználó aktív előfizetéseinek éves költsége fődevizában (a PHP-val azonos számítással: 30 nap / 4,35 hét egy hónap, az egyszeri vásárlás 0) a `total_yearly_cost` táblába kerül, naponta legfeljebb egy pont. A statisztika oldal „Total Monthly Cost” grafikonja ebből rajzol; API: `/api/stats/history`.
+- **AI-javaslatok:** a PHP `ai_client.php` és `endpoints/ai/*` portja – ChatGPT, Gemini, OpenRouter, Ollama, OpenAI-kompatibilis szerverek, plusz **Cloudflare Workers AI** (opcionális `ai` binding, kulcs nélkül). A PHP promptjai változatlanok (a magyar felhasználó magyar javaslatot kap), a modell válaszából a JSON-t kódblokkból, magyarázó szöveg mellől és streamelt válaszból is kiszedi. Javaslatok a főoldalon, törlés, modellek listázása, kategórianevek fordítása (a „Nincs kategória” helyőrző kivételével).
+- **Ütemezés:** a heti/havi futás óránkénti cronnal megy, amikor esedékes (heti: 7 nappal a legutóbbi siker után, havi: naptári hónaponként egyszer); legfeljebb 5 felhasználó óránként, hibás szolgáltatónál naponta egy újrapróbálás (`last_attempt`).
+- **Importáló:** az éves költségtörténet, az AI-beállítások (felhasználónként egy, ahogy a PHP kliens is az elsőt használta) és a meglévő javaslatok is átjönnek; a helyi hálózati Ollamára figyelmeztet.
+- **Tesztek:** 233 teszt (költségszámítás devizával és egyszeri tétellel, hétfői cron, grafikon; minden szolgáltató kérés- és válaszformátuma mockolva, hibák, streamelt válasz, Workers AI, fordítás, ütemezés újrapróbálással, import).
+
+**Eltérések a PHP-tól:** az API-kulcs a felületen és az API-ban maszkolva (`********`), visszaküldve megmarad; felhasználónként egy AI-beállítás; a heti/havi futás „esedékességre” megy fix nap helyett (az első futás a beállítás után egy órán belül); Ollama/saját szerver csak nyilvános címen; a költségtörténet naponta egy pont, 2 tizedesre kerekítve.
+
 ## 3. Ütemterv
 
 Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőségi sorrend; a 3. és 4. párhuzamosítható.
@@ -141,10 +151,10 @@ Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőség
 | 4 | **Fájlok és logók** ✅ | R2 a logóknak és avatároknak; feltöltés méret- és típusellenőrzéssel; logó letöltése URL-ről SSRF-védelemmel; logókereső; törléskor a fájl takarítása; Cloudflare Images átméretezés (háttéreltávolítás opcionális) | — | ✅ (lásd 2d) |
 | 5 | **Webes felület** ✅ | Workers Static Assets a meglévő CSS/JS/képekhez; az oldalak portolása Hono JSX SSR-re (főoldal/előfizetések, statisztika, naptár, beállítások, profil, admin, belépés/regisztráció); i18n konverzió PHP → JSON; témák, egyedi CSS és színek; PWA manifest + service worker; cookie-s session CSRF-védelemmel, „emlékezz rám” | — | ✅ (lásd 2e) |
 | 6 | **Haladó hitelesítés** ✅ | TOTP 2FA (mentőkódokkal, kizárással); OIDC/OAuth SSO, csak-SSO mód; belépési rate limit | — | ✅ (lásd 2f) |
-| 7 | Költségtörténet, AI | Éves költségtörténet (heti cron) a statisztika-oldal történeti grafikonjához; AI-javaslatok (OpenAI/Gemini, opcionálisan Workers AI) heti/havi cronnal. (Naptárnézet és iCal feed az 5. fázisban elkészült.) | 0,5–1 hét | Statisztika-oldal és iCal paritás a PHP-val |
+| 7 | **Költségtörténet, AI** ✅ | Éves költségtörténet (heti cron) a statisztika-oldal történeti grafikonjához; AI-javaslatok (OpenAI/Gemini/OpenRouter/Ollama/OpenAI-kompatibilis, opcionálisan Workers AI) heti/havi cronnal. (Naptárnézet és iCal feed az 5. fázisban elkészült.) | — | ✅ (lásd 2g) |
 | 8 | Élesítés | Egyedi domain, Cloudflare Access/WAF az admin felülethez; D1 Time Travel + időszakos export R2-be; GitHub Actions (teszt + deploy); monitorozás; átállás a PHP példányról (import, DNS) | 0,5–1 hét | Éles forgalom a Workeren, a PHP példány leállítható |
 
-**Hátralévő: kb. 1–2 hét** a teljes funkcióparitásig (7. és 8. fázis). A Worker már most használható webes felülettel, 2FA-val, SSO-val és API-val (pl. Home Assistant integráció, mobilappok), és a meglévő adatok átköltöztethetők; hiányzik még az AI-javaslat és az éves költségtörténet.
+**Funkcióparitás elérve** (a fenti, dokumentált eltérésekkel). **Hátralévő: kb. 0,5–1 hét** – csak a 8. fázis, az élesítés (Cloudflare-fiók, domain, mentések, CI/CD, átállás).
 
 ### Cron-megfeleltetés
 
@@ -156,9 +166,9 @@ Becslés egy fejlesztőre, teljes munkaidőben. A fázisok sorrendje függőség
 | `sendnotifications.php` | naponta 09:00 | ✅ 09:00 a felhasználó időzónájában |
 | `sendverificationemails.php`, `sendresetpasswordemails.php` | 2 percenként | ✅ nincs cron: a levél a kéréskor azonnal megy |
 | `checkforupdates.php` | 6 óránként | elhagyható (a Worker verzióját a deploy adja) |
-| `storetotalyearlycost.php` | hétfőnként 01:30 | 7. fázis |
+| `storetotalyearlycost.php` | hétfőnként 01:30 | ✅ hétfőnként UTC 01:00 |
 | `cleanupresettokens.php` | naponta 03:00 | ✅ UTC 03:00 (plusz 90 napnál régebbi értesítési napló) |
-| `generaterecommendations.php` | heti/havi | 7. fázis |
+| `generaterecommendations.php` | heti/havi | ✅ óránként, amikor esedékes (legfeljebb 5 felhasználó/óra) |
 
 ## 4. Teendők a Cloudflare-fiókban (egyszeri)
 

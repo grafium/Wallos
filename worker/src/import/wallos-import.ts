@@ -49,9 +49,6 @@ export interface ImportOptions {
 
 /** Tables handled by later phases; listed so the report can say what was left behind. */
 const LATER_TABLES: Record<string, string> = {
-  total_yearly_cost: "7",
-  ai_settings: "7",
-  ai_recommendations: "7",
 };
 
 /** Tables whose content is recreated rather than copied. */
@@ -653,6 +650,79 @@ export function buildImport(source: SourceTables, options: ImportOptions = {}): 
     if (!key) continue;
     statements.push(insert("google_search", { user_id: userId, api_key: key }));
     count("imported", "google_search");
+  }
+
+  // Yearly cost history: one point per user and day (the last one wins) ---------
+  const history = new Map<string, SourceRow>();
+  for (const row of rows("total_yearly_cost")) {
+    const userId = ownerOf("total_yearly_cost", row);
+    const date = (str(row.date) ?? "").slice(0, 10);
+    if (userId === null) continue;
+    if (!isValidDate(date) || num(row.cost) === null) {
+      count("skipped", "total_yearly_cost");
+      continue;
+    }
+    if (history.has(`${userId}|${date}`)) count("skipped", "total_yearly_cost");
+    history.set(`${userId}|${date}`, { ...row, user_id: userId, date });
+  }
+  for (const row of history.values()) {
+    statements.push(insert("total_yearly_cost", { user_id: row.user_id as number, date: row.date as string, cost: num(row.cost), currency: str(row.currency) ?? "" }));
+    count("imported", "total_yearly_cost");
+  }
+
+  // AI settings: one per user; PHP's AI client used the first row it found ------
+  const aiTypes = ["chatgpt", "gemini", "openrouter", "ollama", "openai-compatible"];
+  const aiDone = new Set<number>();
+  for (const row of rows("ai_settings")) {
+    const userId = ownerOf("ai_settings", row);
+    if (userId === null) continue;
+    const type = str(row.type) ?? "";
+    const model = str(row.model)?.trim() ?? "";
+    if (aiDone.has(userId) || !aiTypes.includes(type)) {
+      count("skipped", "ai_settings");
+      continue;
+    }
+    aiDone.add(userId);
+    const schedule = str(row.run_schedule) ?? "manual";
+    statements.push(
+      insert("ai_settings", {
+        user_id: userId,
+        type,
+        enabled: model ? flag(row.enabled) : 0,
+        api_key: str(row.api_key)?.trim() ?? "",
+        model,
+        url: str(row.url)?.trim() ?? "",
+        run_schedule: ["manual", "weekly", "monthly"].includes(schedule) ? schedule : "manual",
+        last_successful_run: str(row.last_successful_run),
+      }),
+    );
+    count("imported", "ai_settings");
+    const url = str(row.url) ?? "";
+    if ((type === "ollama" || type === "openai-compatible") && /\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|[^/]*\.local\b)/i.test(url)) {
+      report.warnings.push(`User ${userId}'s AI provider (${url}) is on a private network, which a Worker cannot reach; expose it publicly (e.g. Cloudflare Tunnel) or pick another provider.`);
+    }
+  }
+
+  for (const row of rows("ai_recommendations")) {
+    const userId = ownerOf("ai_recommendations", row);
+    if (userId === null) continue;
+    const title = text(row.title);
+    const description = text(row.description);
+    if (!title || !description) {
+      count("skipped", "ai_recommendations");
+      continue;
+    }
+    statements.push(
+      insert("ai_recommendations", {
+        user_id: userId,
+        type: str(row.type) ?? "subscription",
+        title,
+        description,
+        savings: text(row.savings),
+        created_at: str(row.created_at),
+      }),
+    );
+    count("imported", "ai_recommendations");
   }
 
   report.files.logos = [...new Set(report.files.logos)];

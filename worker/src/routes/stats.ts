@@ -3,6 +3,7 @@ import type { AppBindings } from "../env";
 import { ok, validationFailed } from "../lib/http";
 import { monthlyCostQuery, periodBudgetQuery } from "../lib/schemas";
 import { periodBudget } from "../services/budget";
+import { costHistory } from "../services/cost-history";
 import { costSummary, monthlyCost } from "../services/stats";
 
 export async function monthlyCostHandler(c: Context<AppBindings>, query: Record<string, string>) {
@@ -23,3 +24,5 @@ export const statsRoutes = new Hono<AppBindings>();
 statsRoutes.get("/monthly-cost", (c) => monthlyCostHandler(c, c.req.query()));
 statsRoutes.get("/period-budget", (c) => periodBudgetHandler(c, c.req.query()));
 statsRoutes.get("/summary", async (c) => ok(c, "summary", await costSummary(c.env.DB, c.get("user"))));
+/** The weekly yearly-cost snapshots (storetotalyearlycost.php), oldest first. */
+statsRoutes.get("/history", async (c) => ok(c, "cost_history", { history: await costHistory(c.env.DB, c.get("user").id) }));

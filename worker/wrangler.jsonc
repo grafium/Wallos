@@ -29,13 +29,18 @@
   // the account). Without it images are stored as uploaded.
   // "images": { "binding": "IMAGES" },
 
+  // Optional: Cloudflare Workers AI as a provider for AI recommendations
+  // (billed to the account; the paid plan includes a daily free allowance).
+  // "ai": { "binding": "AI" },
+
   // Optional: an extra per-address limit on login attempts with Workers Rate
   // Limiting, on top of the D1 counters that are always on.
   // "ratelimits": [{ "name": "LOGIN_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } }],
 
   // One hourly trigger. Reminders go out at 09:00 (payments) and 08:00
   // (cancellations) in each user's own timezone; the daily jobs run at 01:00
-  // (next payment dates) and 02:00 (exchange rates) UTC. See src/cron/.
+  // (next payment dates; Mondays also the yearly cost snapshot) and 02:00
+  // (exchange rates) UTC, and due AI recommendations a few per hour. See src/cron/.
   "triggers": {
     "crons": ["0 * * * *"]
   },

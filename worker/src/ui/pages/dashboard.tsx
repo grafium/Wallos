@@ -89,7 +89,7 @@ async function dashboard(c: UiCtx) {
   const limit = [3, 5, 10, 20].includes(ui.settings.upcoming_payments_limit) ? ui.settings.upcoming_payments_limit : 3;
   const columns = "id, logo, logo_text_color, logo_variant, name, price, currency_id, next_payment, cancellation_date";
 
-  const [upcoming, overdue, cancellations, aiTable] = await db.batch<DashboardItem>([
+  const [upcoming, overdue, cancellations, aiRes] = await db.batch<DashboardItem>([
     db
       .prepare(`SELECT ${columns} FROM subscriptions WHERE user_id = ? AND next_payment >= ? AND inactive = 0 AND cycle != 5 ORDER BY next_payment ASC LIMIT ?`)
       .bind(userId, today, limit),
@@ -102,12 +102,9 @@ async function dashboard(c: UiCtx) {
            AND cancellation_date >= ? AND cycle != 5 ORDER BY cancellation_date ASC`,
       )
       .bind(userId, today),
-    db.prepare("SELECT name AS id FROM sqlite_master WHERE type = 'table' AND name = 'ai_recommendations'"),
+    db.prepare("SELECT id, title, description, savings FROM ai_recommendations WHERE user_id = ? ORDER BY id").bind(userId),
   ]);
-  // AI recommendations return with phase 7.
-  const recommendations = aiTable?.results.length
-    ? (await db.prepare("SELECT * FROM ai_recommendations WHERE user_id = ?").bind(userId).all<{ id: number; title: string; description: string; savings: string }>()).results
-    : [];
+  const recommendations = (aiRes?.results ?? []) as unknown as { id: number; title: string; description: string; savings: string }[];
 
   const stats = await calculateStats(c, t);
   const user = await db.prepare("SELECT username, firstname FROM user WHERE id = ?").bind(userId).first<{ username: string; firstname: string | null }>();

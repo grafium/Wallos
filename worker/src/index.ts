@@ -4,6 +4,7 @@ import { runScheduled } from "./cron";
 import type { AppBindings, Env } from "./env";
 import { requireAuth } from "./lib/auth";
 import { fail, ok } from "./lib/http";
+import { aiRoutes } from "./routes/ai";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
 import { exchangeRateRoutes } from "./routes/exchange-rates";
@@ -57,6 +58,7 @@ api.route("/admin", adminRoutes);
 api.route("/notifications", notificationRoutes);
 api.route("/exchange-rates", exchangeRateRoutes);
 api.route("/logos", logoRoutes);
+api.route("/ai", aiRoutes);
 api.get("/cycles", async (c) => {
   const cycles = await c.env.DB.prepare("SELECT id, days, name FROM cycles ORDER BY id").all();
   return ok(c, "cycles", { cycles: cycles.results, notes: [] });
