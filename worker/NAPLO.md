@@ -29,6 +29,8 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | Saját domain: `aisub.hu` | `a0c001b` | 240 | ✅ |
 | Mentés a Resend és a saját domain után | `23fe6dc` | 240 | ✅ |
 | Napló: az `aisub.hu` élesben | `6bea7cf` | 240 | ✅ |
+| Napló: CI-eredmény | `07e5924` | 240 | ✅ |
+| Mentés az `aisub.hu` után, új session-mappa | – | 240 | – |
 
 A fejlesztés és az élesítés 2026-10-13-án, a Resend és a saját domain beállítása, valamint az `aisub.hu` telepítése 2026-10-15-én készült.
 
@@ -198,5 +200,14 @@ A fejlesztés és az élesítés 2026-10-13-án, a Resend és a saját domain be
 - Kiinduló állapot ellenőrizve: `npm run typecheck` hibátlan, 240 teszt zöld; `check:deployment` a `workers.dev` címen 8/8; az `aisub.hu` zóna a Cloudflare-en van (`bingo`/`camilo.ns.cloudflare.com`), a csúcsdomainen nem volt ütköző rekord; `wrangler deploy --dry-run` a helyes kötésekkel.
 - `npm run deploy` → **`6fa0448e-cbe1-4b14-a8fb-9910e42d73a7`** verzió, célpontok: `https://wallos.grafium.workers.dev`, `aisub.hu (custom domain)`, `schedule: 0 * * * *`. A Cloudflare létrehozta a DNS-rekordot és a tanúsítványt.
 - **`check:deployment -- https://aisub.hu`: 8/8 zöld, verzió 0.8.0**, érvényes TLS-tanúsítvány. `npx wrangler d1 migrations list DB --remote` → „No migrations to apply”.
-- **Hiba menet közben:** közvetlenül a telepítés után a helyi és több nyilvános resolver (1.1.1.1) még a korábbi „nincs ilyen név” választ cache-elte (a zóna SOA negatív TTL-je 1800 s), ezért a `curl` és a Node `fetch` „Could not resolve host” hibát adott, miközben az authoritatív NS és a 8.8.8.8 már válaszolt. Az ellenőrzés ezért egyszer egy DNS-rögzítő `--import` előtöltővel futott a Cloudflare IP-jére (a TLS és a `Host` valódi volt); ez legfeljebb 30 percig tart, utána a sima parancs is megy. Tanulság a SZABALYOK 7. szakaszába került.
+- **Hiba menet közben:** közvetlenül a telepítés után a helyi és több nyilvános resolver (1.1.1.1) még a korábbi „nincs ilyen név” választ cache-elte (a zóna SOA negatív TTL-je 1800 s), ezért a `curl` és a Node `fetch` „Could not resolve host” hibát adott, miközben az authoritatív NS és a 8.8.8.8 már válaszolt. Az ellenőrzés ezért egyszer egy DNS-rögzítő `--import` előtöltővel futott a Cloudflare IP-jére (a TLS és a `Host` valódi volt); ez legfeljebb 30 percig tart, utána a sima parancs is megy. Tanulság a SZABALYOK 7. szakaszába került; a segéd később `scripts/pin-dns.mjs` néven a repóba került.
 - Nyitott: az admin oldalon a *Server URL* `https://aisub.hu`-ra (ha ki van töltve); opcionálisan `"workers_dev": false` egy átmeneti idő után; a tesztlevél fejlécében SPF/DKIM/DMARC `pass`; admin 2FA; mentés-próba; az `ELESITES.md` 11. ellenőrzőlistája.
+
+## Mentés (az aisub.hu telepítése után, új session-mappa)
+
+**Kérés:** „Ments mindent a Wallos folderba — itt van a Session új helye. NAPLO, SZABALYOK, ATVETEL.”
+
+- A session munkakönyvtára mostantól `/Users/xaba/Claude2026/Wallos`. Ez nem git-klón: ide kerülnek a dokumentumok másolatai (NAPLO, SZABALYOK, ATVETEL, valamint a rájuk hivatkozó ROADMAP és ELESITES). A forrás továbbra is a `~/Wallos` klón `worker/` mappája; a `~/Desktop/Wallos` korábbi másolat.
+- A scratchpadben maradt DNS-rögzítő előtöltő a repóba került: `scripts/pin-dns.mjs` (`PIN_DNS=host=cím`), hogy egy friss saját domain a negatív DNS-cache alatt is ellenőrizhető legyen. Kipróbálva: `aisub.hu` → 8/8. A sima `check:deployment -- https://aisub.hu` ezen a Macen a mentéskor még „fetch failed”-del állt meg (a helyi resolver negatív cache-e), a 8.8.8.8 és az authoritatív NS már válaszolt.
+- Állapot a mentéskor: 0.8.0 élesben a `https://aisub.hu` (`6fa0448e…`) és a `https://wallos.grafium.workers.dev` címen, mindkettőn 8/8; mind a 7 migráció lefutott; 240 zöld teszt; a CI zöld a `6bea7cf`-en és a `07e5924`-en.
+- Nyitott: *Server URL* az admin oldalon, admin 2FA, mentés-próba, SPF/DKIM/DMARC `pass` a levélfejlécben, később `"workers_dev": false`, opcionálisan 1.0.0-s kiadás.

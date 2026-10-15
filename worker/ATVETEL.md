@@ -1,6 +1,6 @@
 # Átadás-átvétel — hol tart a projekt, hogyan lehet folytatni
 
-Állapot: **2026-10-15, 0.8.0 verzió, élesben:** `https://aisub.hu` (saját domain, `6fa0448e…` verzió) és átmenetileg `https://wallos.grafium.workers.dev` is (D1: `77fe2741-2dfa-43b1-9a6a-db5371ed1c87`; `check:deployment` mindkét címen 8/8 zöld; mind a 7 migráció lefutott). Resend élesben működik (`wallos@aisub.hu`, a tesztlevél megérkezett, de még levélszemétbe sorolódik — DMARC/kézbesíthetőség folyamatban). Admin fiók regisztrálva. A session a megrendelő Macjén is futtatható: a klón `~/Wallos`, a `wrangler` be van jelentkezve, így telepítés és éles ellenőrzés innen is megy. Hátravan még: *Server URL* az admin oldalon, admin 2FA, mentés-próba, opcionálisan `"workers_dev": false` és adatátköltöztetés ([ELESITES.md](./ELESITES.md)). Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
+Állapot: **2026-10-15, 0.8.0 verzió, élesben:** `https://aisub.hu` (saját domain, `6fa0448e…` verzió) és átmenetileg `https://wallos.grafium.workers.dev` is (D1: `77fe2741-2dfa-43b1-9a6a-db5371ed1c87`; `check:deployment` mindkét címen 8/8 zöld; mind a 7 migráció lefutott). Resend élesben működik (`wallos@aisub.hu`, a tesztlevél megérkezett, de még levélszemétbe sorolódik — DMARC/kézbesíthetőség folyamatban). Admin fiók regisztrálva. A session helye: `/Users/xaba/Claude2026/Wallos` (a dokumentumok másolatai); a git-klón: `~/Wallos` (a `worker/` a forrás). A `wrangler` ezen a Macen be van jelentkezve, így telepítés és éles ellenőrzés innen is megy. Hátravan még: *Server URL* az admin oldalon, admin 2FA, mentés-próba, opcionálisan `"workers_dev": false` és adatátköltöztetés ([ELESITES.md](./ELESITES.md)). Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
 
 ## 1. Mi működik
 
@@ -75,10 +75,12 @@ Opcionális: a Cloudflare Images binding bekapcsolása (`wrangler.jsonc`, `image
 - **Ütemezett AI:** óránként legfeljebb 5 esedékes felhasználó; sok felhasználónál a heti futás több órán át tart, ez szándékos (egy kérés akár percekig tarthat).
 - `pkill -f "wrangler dev"` a saját parancssort is leállítja, ha az is tartalmazza ezt a szöveget (exit 144); a `wrangler dev` leállítását külön parancsban futtasd.
 - A `setup:cloudflare` a `wrangler.jsonc`-t módosítja (adatbázis-azonosító, változók): utána commitolni kell, különben a GitHubról induló telepítés a helyőrzőn megáll.
+- **Friss saját domain és DNS-cache:** az első telepítés után a resolverek akár 30 percig „Could not resolve host”-ot adnak. Ellenőrzés addig: `dig +short aisub.hu A @bingo.ns.cloudflare.com`, majd `PIN_DNS=aisub.hu=<cím> node --no-warnings --import ./scripts/pin-dns.mjs scripts/check-deployment.ts https://aisub.hu`.
 - A füstteszt 2FA-része a második belépésnél megvárja a következő 30 másodperces időlépést, így kb. fél percig tart; `SKIP_2FA=1` kihagyja.
 
 ## 6. Folytatás új sessionben
 
+0. Ezen a Macen: a session mappája `/Users/xaba/Claude2026/Wallos` (csak dokumentum-másolatok), a munka a `~/Wallos` klónban folyik; mentéskor a dokumentumokat a repóban frissítjük, és ide is átmásoljuk.
 1. `git fetch origin claude/zen-goldberg-0hbajd && git checkout claude/zen-goldberg-0hbajd`
 2. Olvasd el: `worker/SZABALYOK.md`, `worker/ATVETEL.md` (ez), `worker/ROADMAP.md` 3. szakasz.
 3. `cd worker && npm install && npm run typecheck && npm test` — a kiinduló állapot: 240 zöld teszt.

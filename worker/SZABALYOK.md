@@ -15,7 +15,7 @@ Ezek a szabályok a projekt eddigi menetéből és a megrendelő kéréseiből �
    - a [NAPLO.md](./NAPLO.md) bejegyzést kapott;
    - a végső commit `[skip ci]` nélkül ki van pusholva.
 4. A végén rövid magyar összefoglaló: mi készült el, mi tér el a PHP-tól, mi jön a következő fázisban.
-5. **„Ments mindent: NAPLO, SZABALYOK, ATVETEL”** azt jelenti: a három dokumentum tükrözze a pillanatnyi állapotot (napló-bejegyzés a kérésről is), a munkából semmi ne maradjon csak a scratchpadben (pl. segédszkriptek a repóba), és minden legyen commitolva és pusholva.
+5. **„Ments mindent: NAPLO, SZABALYOK, ATVETEL”** azt jelenti: a három dokumentum tükrözze a pillanatnyi állapotot (napló-bejegyzés a kérésről is), a munkából semmi ne maradjon csak a scratchpadben (pl. segédszkriptek a repóba), minden legyen commitolva és pusholva, és a dokumentumok másolata kerüljön a session mappájába is (`/Users/xaba/Claude2026/Wallos`; a forrás a `~/Wallos/worker/`).
 6. A naplóba CI-eredményt (✅) csak akkor írunk, ha a GitHub Actions futását ténylegesen ellenőriztük; a fázis commitjának azonosítója és CI-eredménye egy rövid `docs(worker): …` commitban kerül be utólag.
 
 ## 2. Git
@@ -82,4 +82,4 @@ Ezek a szabályok a projekt eddigi menetéből és a megrendelő kéréseiből �
 6. A megrendelő több gépen dolgozik (MacBook Pro, Mac mini), és nem mindegyiken van klón. Minden parancssor elé `cd <repó>/worker` kerül; ha `not a git repository` / `Missing script` / `Required Worker name missing` hiba jön, rossz mappából futott. A repó nélkül csak a `--name wallos`-os wrangler-parancsok mennek (pl. `npx wrangler secret put RESEND_API_KEY --name wallos`); telepíteni (`npm run deploy`) csak a klónból lehet.
 7. A `wrangler.jsonc` változásai (domain, `vars`) csak telepítés után élnek; a commit után mindig jelezzük, hogy `git pull` + `npm run deploy` kell, és a telepítés kimenetéig az állapotot „telepítésre vár”-nak írjuk.
 8. A tesztek nem függhetnek a `wrangler.jsonc` `vars` értékeitől: amit a tesztek feltételeznek (`EMAIL_FROM`, `APP_URL`), azt a `vitest.config.ts` miniflare-kötései rögzítik.
-9. Új saját domain első telepítése után a resolverek akár 30 percig a korábbi negatív választ cache-elhetik („Could not resolve host”). Ez nem telepítési hiba: az authoritatív NS-sel (`dig aisub.hu @bingo.ns.cloudflare.com`) ellenőrizzük, és a megrendelőnek jelezzük, hogy a böngészőben pár percen belül megjelenik.
+9. Új saját domain első telepítése után a resolverek akár 30 percig a korábbi negatív választ cache-elhetik („Could not resolve host”). Ez nem telepítési hiba: az authoritatív NS-sel (`dig aisub.hu @bingo.ns.cloudflare.com`) ellenőrizzük, az ellenőrző szkriptet addig a `scripts/pin-dns.mjs` előtöltővel futtatjuk, és a megrendelőnek jelezzük, hogy a böngészőben pár percen belül megjelenik.
