@@ -22,8 +22,13 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | Teszt javítása: a valódi D1-azonosító elfogadása | `d61a855` | 240 | ✅ |
 | Napló: élesítés a workers.dev címre | `6c3fb2b` | 240 | ✅ |
 | Napló: minden migráció lefutott élesben | `5b9a895` | 240 | ✅ |
+| Mentés az élesítés után | `22e1f4d` | 240 | ✅ |
+| Resend: `EMAIL_FROM` = `wallos@aisub.hu`, `APP_URL` | `37223ce` | 240 | ✅ |
+| Napló: a Resend élesben működik | `bd7ef3a` | 240 | ✅ |
+| Napló: DMARC-rekord | `a872ceb` | 240 | ✅ |
+| Saját domain: `aisub.hu` | `a0c001b` | 240 | ✅ |
 
-Minden munka 2026-10-13-án készült.
+A fejlesztés és az élesítés 2026-10-13-án, a Resend és a saját domain beállítása 2026-10-15-én készült.
 
 ---
 
@@ -174,3 +179,11 @@ Minden munka 2026-10-13-án készült.
 - Ellenőrzés: `wrangler deploy --dry-run` a helyes kötésekkel és változókkal, 240 teszt zöld.
 - Feltétel: az `aisub.hu` zóna ugyanabban a Cloudflare-fiókban van, és a csúcsdomainen (`aisub.hu`) nincs más A/AAAA/CNAME rekord — ha van, a telepítés hibát ad, előbb törölni kell. A Resend rekordjai (`send`, `resend._domainkey`, `_dmarc`) nem ütköznek.
 - Nyitott a megrendelőnél: `npm run deploy`, majd `npm run check:deployment -- https://aisub.hu`; ha az admin oldalon ki van töltve a „Server URL”, azt is `https://aisub.hu`-ra kell írni.
+- Első telepítési kísérlet: a megrendelő a saját mappájából (`~`) futtatta a parancsokat a Mac minin → `fatal: not a git repository` és `npm error Missing script: "deploy"`. Ezen a gépen valószínűleg nincs klónozva a repó; útmutatás: `find`-dal megkeresni, vagy `git clone` / `gh repo clone`, majd a `worker/` mappából telepíteni. **Az `aisub.hu` még nem fut élesben** — a telepítés kimenete még nem érkezett meg.
+
+## Mentés (Resend és saját domain után)
+
+**Kérés:** „Ments mindent. NAPLO, SZABALYOK, ATVETEL.”
+
+- Állapot: élesben a `https://wallos.grafium.workers.dev` címen fut (`880039e2…` verzió), e-mail a Resenden át `wallos@aisub.hu`-ról működik (tesztlevél megérkezett, de levélszemétbe sorolódott; `_dmarc` felvéve, a fejléc ellenőrzése még hátravan). A repóban az `aisub.hu` saját domain és az `APP_URL` már be van állítva, a telepítés a megrendelőnél függőben. 240 zöld teszt, CI zöld minden commiton (`37223ce`…`a0c001b`), munkakönyvtár tiszta.
+- A SZABALYOK 7. szakasza kiegészült: a megrendelő több gépen dolgozik (MacBook Pro, Mac mini), a parancsok elé mindig `cd <repó>/worker` kell; a `wrangler secret put` a mappán kívül csak `--name wallos`-szal megy; a `wrangler.jsonc` változásai (domain, változók) csak `npm run deploy` után élnek; a tesztek nem függhetnek a `wrangler.jsonc` `vars` értékeitől.

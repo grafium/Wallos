@@ -79,3 +79,6 @@ Ezek a szabályok a projekt eddigi menetéből és a megrendelő kéréseiből �
 3. Ha a wrangler csak a súgót írja ki, a hibaüzenet a súgó fölött van (`✘ [ERROR]`): azt kell elkérni.
 4. Az éles állapotot (cím, adatbázis-azonosító, ellenőrzés eredménye, migrációk) az ATVETEL elején és a NAPLO-ban rögzítjük.
 5. Titkot (tokent, API-kulcsot) soha nem kérünk be a chatben; a megrendelő `wrangler secret put`-tal vagy a környezet beállításaiban adja meg.
+6. A megrendelő több gépen dolgozik (MacBook Pro, Mac mini), és nem mindegyiken van klón. Minden parancssor elé `cd <repó>/worker` kerül; ha `not a git repository` / `Missing script` / `Required Worker name missing` hiba jön, rossz mappából futott. A repó nélkül csak a `--name wallos`-os wrangler-parancsok mennek (pl. `npx wrangler secret put RESEND_API_KEY --name wallos`); telepíteni (`npm run deploy`) csak a klónból lehet.
+7. A `wrangler.jsonc` változásai (domain, `vars`) csak telepítés után élnek; a commit után mindig jelezzük, hogy `git pull` + `npm run deploy` kell, és a telepítés kimenetéig az állapotot „telepítésre vár”-nak írjuk.
+8. A tesztek nem függhetnek a `wrangler.jsonc` `vars` értékeitől: amit a tesztek feltételeznek (`EMAIL_FROM`, `APP_URL`), azt a `vitest.config.ts` miniflare-kötései rögzítik.
