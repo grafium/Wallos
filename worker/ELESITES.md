@@ -83,7 +83,7 @@ Ha a PHP Wallos ugyanezen a címen fut, ez az átállás pillanata: lásd 5. sza
 ## 6. Biztonság
 
 - **Titkok** csak `wrangler secret put`-tal: `RESEND_API_KEY`, opcionálisan `OIDC_CLIENT_SECRET`. A `wrangler.jsonc`-ben nincs titok.
-- **Beépítve:** belépés-korlátozás (cím és cím+felhasználónév szerint), kétlépcsős azonosítás, CSRF-védelem, biztonsági fejlécek (HSTS, `nosniff`, `frame-options`), a feltöltött fájlok sandbox CSP-vel.
+- **Beépítve:** belépés-korlátozás (cím és cím+felhasználónév szerint), kétlépcsős azonosítás, CSRF-védelem, biztonsági fejlécek (HSTS, `nosniff`, `frame-options`), HTTP → HTTPS átirányítás (0.8.1), a feltöltött fájlok sandbox CSP-vel.
 - **Opcionális, a Cloudflare-en:**
   - *Cloudflare Access* (Zero Trust, 50 felhasználóig ingyenes) az admin felületre: `wallos.sajatdomain.hu/admin.php`, `/endpoints/admin/*`, `/api/admin/*`. Figyelem: az `/api/admin/*.php` útvonalakat API-kulccsal használó kliensek ilyenkor nem érik el.
   - *WAF Rate limiting rule* a `/login.php` és `/api/auth/login` útvonalakra (a beépített korlátozás mellé).

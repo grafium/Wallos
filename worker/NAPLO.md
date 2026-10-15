@@ -31,8 +31,11 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | Napló: az `aisub.hu` élesben | `6bea7cf` | 240 | ✅ |
 | Napló: CI-eredmény | `07e5924` | 240 | ✅ |
 | Mentés az `aisub.hu` után, új session-mappa | `63fc5d3` | 240 | ✅ |
+| Napló: CI-eredmény | `b0bfd51` | 240 | ✅ |
+| Javítás: HTTP → HTTPS átirányítás (0.8.1) | `c7f5600` | 242 | ✅ |
+| Napló: 0.8.1 élesben | – | 242 | – |
 
-A fejlesztés és az élesítés 2026-10-13-án, a Resend és a saját domain beállítása, valamint az `aisub.hu` telepítése 2026-10-15-én készült.
+A fejlesztés és az élesítés 2026-10-13-án, a Resend és a saját domain beállítása, valamint az `aisub.hu` telepítése és a 0.8.1-es javítás 2026-10-15-én készült.
 
 ---
 
@@ -211,3 +214,13 @@ A fejlesztés és az élesítés 2026-10-13-án, a Resend és a saját domain be
 - A scratchpadben maradt DNS-rögzítő előtöltő a repóba került: `scripts/pin-dns.mjs` (`PIN_DNS=host=cím`), hogy egy friss saját domain a negatív DNS-cache alatt is ellenőrizhető legyen. Kipróbálva: `aisub.hu` → 8/8. A sima `check:deployment -- https://aisub.hu` ezen a Macen a mentéskor még „fetch failed”-del állt meg (a helyi resolver negatív cache-e), a 8.8.8.8 és az authoritatív NS már válaszolt.
 - Állapot a mentéskor: 0.8.0 élesben a `https://aisub.hu` (`6fa0448e…`) és a `https://wallos.grafium.workers.dev` címen, mindkettőn 8/8; mind a 7 migráció lefutott; 240 zöld teszt; a CI zöld a `6bea7cf`-en és a `07e5924`-en.
 - Nyitott: *Server URL* az admin oldalon, admin 2FA, mentés-próba, SPF/DKIM/DMARC `pass` a levélfejlécben, később `"workers_dev": false`, opcionálisan 1.0.0-s kiadás.
+
+## „A domain nem elérhető / nem biztonságos” — 0.8.1
+
+**Kérés:** „https://aisub.hu domaint nem érem még el” → „domain még nem biztonságos” → „Igen, telepítsd a 0.8.1-et élesbe, futtasd az ellenőrzést, és frissítsd a naplót.”
+
+- **Nem elérhető:** a Mac az 1.1.1.1-et használja, amely a telepítés előtti NODATA-választ cache-elte (a cache-elt SOA sorozatszáma `…3072` volt, a zónáé már `…8740`; hátralévő TTL kb. 18 perc). A 8.8.8.8, a 9.9.9.9 és az authoritatív NS már válaszolt. Javaslat: one.one.one.one/purge-cache, `sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder`, vagy várni. A 0.8.1 telepítése után már az 1.1.1.1 is a helyes címeket adta.
+- **Nem biztonságos:** a tanúsítvány rendben volt (Google Trust Services WE1, `aisub.hu` + `*.aisub.hu`, 2027-01-13-ig), vegyes tartalom nem volt. Az ok: a Worker a saját domainen **sima HTTP-n is kiszolgált** (`http://aisub.hu/` → 302 `login.php` HTTP-n), így a böngésző „Nem biztonságos”-t mutatott, a session-süti pedig `Secure` jelző nélkül ment volna ki (a `secure` a kérés protokollját követi).
+- **Javítás (`c7f5600`):** `src/index.ts` — minden más middleware előtt HTTP → HTTPS átirányítás (GET/HEAD 301, egyéb 308, az útvonal és a query megmarad), kivéve `localhost`, `127.0.0.1`, `[::1]`, `*.localhost` (a `wrangler dev` és a füstteszt HTTP-n marad). Teszt: `api.test.ts` „HTTPS redirect” (2 új, összesen 242). A `check:deployment` új pontja: „plain HTTP redirects to HTTPS” (HTTPS-címnél); a régi élesen ez kimutatta a hibát. Verzió: **0.8.1**.
+- `npm run deploy` → **`b5deb611-630e-4620-88a2-7581849373b9`**. `check:deployment --version 0.8.1`: **`https://aisub.hu` 9/9** (már DNS-rögzítés nélkül), **`https://wallos.grafium.workers.dev` 9/9**. `http://aisub.hu/` → `301 https://aisub.hu/`, a HTTPS 200, érvényes tanúsítvánnyal. A CI zöld a `b0bfd51`-en és a `c7f5600`-on.
+- Alternatíva, ha valaha a Worker előtt kellene: a Cloudflare-ben az SSL/TLS → Edge Certificates → *Always Use HTTPS*; most nem szükséges.

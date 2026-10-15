@@ -143,7 +143,7 @@
 A fiókban végzendő lépésekhez Cloudflare-hozzáférés kell, ezért ezek a megrendelőnél futnak; a repó mindent előkészít hozzájuk:
 
 - **`scripts/setup-cloudflare.ts`** (`npm run setup:cloudflare`): egy újrafuttatható paranccsal D1 és R2 létrehozása vagy megtalálása, az adatbázis-azonosító beírása a `wrangler.jsonc`-be (kommentek megmaradnak), `EMAIL_FROM`/`APP_URL`, migrációk, telepítés, titkok, ellenőrzés; `--dry-run`.
-- **`scripts/check-deployment.ts`** (`npm run check:deployment`): kívülről, módosítás nélkül ellenőrzi az élő Workert (health és verzió, statikus fájlok, belépési oldalak, manifest, API-védelem, biztonsági fejlécek, a mentések nem publikusak).
+- **`scripts/check-deployment.ts`** (`npm run check:deployment`): kívülről, módosítás nélkül ellenőrzi az élő Workert (health és verzió, statikus fájlok, belépési oldalak, manifest, API-védelem, biztonsági fejlécek, HTTP → HTTPS átirányítás (0.8.1-től), a mentések nem publikusak).
 - **GitHub Actions** (`.github/workflows/worker-deploy.yaml`): `worker-v*` tagre, `main`-re és kézzel; ellenőrzi a beállításokat, tesztel, migrál, telepít, ellenőriz.
 - **Példányszintű mentés:** heti gzip-pelt SQL-dump az R2-be (`backups/`, 8 megmarad), admin oldali kézi mentés és letöltés, `/api/admin/backups`; visszaállítás `wrangler d1 execute`-tal friss adatbázisba. A D1 Time Travel mellett ez a kimenthető példány.
 - **Konfiguráció:** Workers Logs és source mapek, `workers_dev`, saját domain (`routes`, `custom_domain`) kommentben előkészítve; a parancsok a `DB` binding nevet használják, így adatbázis-csere után is működnek.
