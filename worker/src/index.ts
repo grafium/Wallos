@@ -21,6 +21,17 @@ import { WALLOS_COMPAT_VERSION, WORKER_VERSION } from "./version";
 
 const app = new Hono<AppBindings>();
 
+// A custom domain also answers on plain HTTP: send it to HTTPS, so browsers
+// show the page as secure and the session cookie gets its Secure flag.
+// Local development (wrangler dev on localhost) stays on HTTP.
+const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])$|\.localhost$/;
+app.use("*", async (c, next) => {
+  const url = new URL(c.req.url);
+  if (url.protocol !== "http:" || LOCAL_HOST.test(url.hostname)) return next();
+  url.protocol = "https:";
+  return c.redirect(url.toString(), c.req.method === "GET" || c.req.method === "HEAD" ? 301 : 308);
+});
+
 app.use("*", secureHeaders());
 
 app.get("/api", (c) =>

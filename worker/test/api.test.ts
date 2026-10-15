@@ -62,6 +62,30 @@ describe("health", () => {
   });
 });
 
+describe("HTTPS redirect", () => {
+  async function plain(url: string, method = "GET") {
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(new Request(url, { method, redirect: "manual" }), env, ctx);
+    await waitOnExecutionContext(ctx);
+    return response;
+  }
+
+  it("sends plain HTTP on a real host to HTTPS, keeping path and query", async () => {
+    const get = await plain("http://wallos.test/login.php?lang=hu");
+    expect(get.status).toBe(301);
+    expect(get.headers.get("location")).toBe("https://wallos.test/login.php?lang=hu");
+    const post = await plain("http://wallos.test/api/auth/login", "POST");
+    expect(post.status).toBe(308);
+    expect(post.headers.get("location")).toBe("https://wallos.test/api/auth/login");
+  });
+
+  it("leaves local development on HTTP", async () => {
+    for (const url of ["http://localhost:8787/api/health", "http://127.0.0.1:8787/api/health", "http://wallos.localhost/api/health"]) {
+      expect((await plain(url)).status).toBe(200);
+    }
+  });
+});
+
 describe("registration and login", () => {
   it("seeds a new account with the Wallos defaults", async () => {
     const user = await newUser();

@@ -1,7 +1,7 @@
 /*
   Checks a deployed Wallos Worker from the outside, without changing anything:
   health (database reachable, version), the web interface's static files,
-  the sign-in pages, the PWA manifest, the JSON API and the security headers.
+  the sign-in pages, the PWA manifest, the JSON API, the security headers and the HTTPS redirect.
 
   Usage (Node 22.18+):
     node scripts/check-deployment.ts https://wallos.example.com [--version 0.8.0]
@@ -79,6 +79,14 @@ await check("security headers", async () => {
   const missing = ["strict-transport-security", "x-content-type-options", "x-frame-options"].filter((h) => !response.headers.has(h));
   return missing.length === 0 ? true : `missing ${missing.join(", ")}`;
 });
+
+if (base.startsWith("https://")) {
+  await check("plain HTTP redirects to HTTPS", async () => {
+    const response = await fetch(`${base.replace(/^https:/, "http:")}/login.php`, { redirect: "manual", signal: AbortSignal.timeout(20_000) });
+    const location = response.headers.get("location") ?? "";
+    return [301, 308].includes(response.status) && location.startsWith("https://") ? true : `HTTP ${response.status} -> ${location}`;
+  });
+}
 
 await check("backups are not public", async () => {
   const response = await get("/backups/wallos-2026-01-01.sql.gz");
