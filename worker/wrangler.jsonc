@@ -58,9 +58,9 @@
     "SESSION_TTL_DAYS": "30",
     // Sender for all e-mail; the domain must be verified in Resend.
     // The API key is a secret: npx wrangler secret put RESEND_API_KEY
-    "EMAIL_FROM": "Wallos <wallos@example.com>",
+    "EMAIL_FROM": "Wallos <wallos@aisub.hu>",
     // Base URL for links in e-mails when the admin has not set server_url.
-    "APP_URL": ""
+    "APP_URL": "https://wallos.grafium.workers.dev"
     // OIDC can be configured on the admin page, or pinned here with PHP Wallos'
     // variable names (the client secret as a secret: wrangler secret put OIDC_CLIENT_SECRET):
     // "OIDC_ENABLED": "true", "OIDC_PROVIDER_NAME": "Authentik", "OIDC_CLIENT_ID": "...",

@@ -155,3 +155,12 @@ Minden munka 2026-10-13-án készült.
 - Állapot: 0.8.0 élesben a `https://wallos.grafium.workers.dev` címen, `check:deployment` 8/8, mind a 7 migráció lefutott, 240 zöld teszt, CI zöld, munkakönyvtár tiszta.
 - A SZABALYOK-ba bekerültek az élesítés tanulságai: tesztben nem rögzítünk telepítésfüggő értéket; a megrendelőnek adott parancsok legyenek idézőjel nélküliek vagy másolásbiztosak; az éles ellenőrzés a megrendelő kimeneteiből megy, amíg a sandbox nem éri el a Cloudflare-t.
 - Nyitott a megrendelőnél: első admin (vagy import), admin 2FA, mentés-próba, Resend, opcionálisan saját domain és GitHubról telepítés, az `ELESITES.md` 11. ellenőrzőlistája.
+
+## Resend bekötése
+
+**Kérés:** „Resend beállításokban segíts. Írd le pontról pontra.”
+
+- A megrendelő a Resendben hitelesítette az `aisub.hu` domaint, létrehozta a „Sending access” API-kulcsot, és a saját gépén eltárolta: `npx wrangler secret put RESEND_API_KEY --name wallos` → „Success” (a kulcs nem került a chatbe).
+- Tanulság: a `wrangler secret put` a `worker/` mappán kívül „Required Worker name missing” hibát ad; ilyenkor `--name wallos`.
+- `wrangler.jsonc`: `EMAIL_FROM` = `Wallos <wallos@aisub.hu>`, `APP_URL` = `https://wallos.grafium.workers.dev`. A tesztek ettől függetlenek maradtak: a `vitest.config.ts` az `APP_URL`-t üresre rögzíti (a linkek a kérés címéből készülnek), az `EMAIL_FROM` ott eddig is rögzített volt. 240 teszt zöld.
+- Nyitott a megrendelőnél: `git pull` + `npm run deploy` a `worker/` mappából, majd próba (admin oldal SMTP-szakasza, tesztlevél, Resend → Emails).
