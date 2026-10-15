@@ -74,7 +74,7 @@ Ezek a szabályok a projekt eddigi menetéből és a megrendelő kéréseiből �
 
 ## 7. Élesítés és üzemeltetés
 
-1. A sandbox nem éri el a Cloudflare-t (az `api.cloudflare.com` és a `*.workers.dev` tiltott, token nincs). Az éles ellenőrzés a megrendelő által futtatott parancsok kimenetéből történik; amit nem láttunk, azt nem jelentjük késznek.
+1. A felhős sandbox nem éri el a Cloudflare-t (az `api.cloudflare.com` és a `*.workers.dev` tiltott, token nincs); ott az éles ellenőrzés a megrendelő által futtatott parancsok kimenetéből történik. A megrendelő Macjén futó sessionben (`~/Wallos`, bejelentkezett wrangler) a telepítés és az ellenőrzés közvetlenül futtatható — éles telepítés előtt ekkor is a megrendelő jóváhagyását kérjük. Amit nem láttunk, azt nem jelentjük késznek.
 2. A megrendelőnek adott parancsok legyenek másolásbiztosak: lehetőleg idézőjel nélküliek (pl. `npx wrangler d1 migrations list DB --remote` a táblalista-SQL helyett), macOS zsh-n és Windows PowerShellen is működjenek, vagy legyen mellettük a PowerShell-változat.
 3. Ha a wrangler csak a súgót írja ki, a hibaüzenet a súgó fölött van (`✘ [ERROR]`): azt kell elkérni.
 4. Az éles állapotot (cím, adatbázis-azonosító, ellenőrzés eredménye, migrációk) az ATVETEL elején és a NAPLO-ban rögzítjük.
@@ -82,3 +82,4 @@ Ezek a szabályok a projekt eddigi menetéből és a megrendelő kéréseiből �
 6. A megrendelő több gépen dolgozik (MacBook Pro, Mac mini), és nem mindegyiken van klón. Minden parancssor elé `cd <repó>/worker` kerül; ha `not a git repository` / `Missing script` / `Required Worker name missing` hiba jön, rossz mappából futott. A repó nélkül csak a `--name wallos`-os wrangler-parancsok mennek (pl. `npx wrangler secret put RESEND_API_KEY --name wallos`); telepíteni (`npm run deploy`) csak a klónból lehet.
 7. A `wrangler.jsonc` változásai (domain, `vars`) csak telepítés után élnek; a commit után mindig jelezzük, hogy `git pull` + `npm run deploy` kell, és a telepítés kimenetéig az állapotot „telepítésre vár”-nak írjuk.
 8. A tesztek nem függhetnek a `wrangler.jsonc` `vars` értékeitől: amit a tesztek feltételeznek (`EMAIL_FROM`, `APP_URL`), azt a `vitest.config.ts` miniflare-kötései rögzítik.
+9. Új saját domain első telepítése után a resolverek akár 30 percig a korábbi negatív választ cache-elhetik („Could not resolve host”). Ez nem telepítési hiba: az authoritatív NS-sel (`dig aisub.hu @bingo.ns.cloudflare.com`) ellenőrizzük, és a megrendelőnek jelezzük, hogy a böngészőben pár percen belül megjelenik.

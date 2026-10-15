@@ -27,8 +27,10 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | Napló: a Resend élesben működik | `bd7ef3a` | 240 | ✅ |
 | Napló: DMARC-rekord | `a872ceb` | 240 | ✅ |
 | Saját domain: `aisub.hu` | `a0c001b` | 240 | ✅ |
+| Mentés a Resend és a saját domain után | `23fe6dc` | 240 | ✅ |
+| Napló: az `aisub.hu` élesben | – | 240 | – |
 
-A fejlesztés és az élesítés 2026-10-13-án, a Resend és a saját domain beállítása 2026-10-15-én készült.
+A fejlesztés és az élesítés 2026-10-13-án, a Resend és a saját domain beállítása, valamint az `aisub.hu` telepítése 2026-10-15-én készült.
 
 ---
 
@@ -187,3 +189,14 @@ A fejlesztés és az élesítés 2026-10-13-án, a Resend és a saját domain be
 
 - Állapot: élesben a `https://wallos.grafium.workers.dev` címen fut (`880039e2…` verzió), e-mail a Resenden át `wallos@aisub.hu`-ról működik (tesztlevél megérkezett, de levélszemétbe sorolódott; `_dmarc` felvéve, a fejléc ellenőrzése még hátravan). A repóban az `aisub.hu` saját domain és az `APP_URL` már be van állítva, a telepítés a megrendelőnél függőben. 240 zöld teszt, CI zöld minden commiton (`37223ce`…`a0c001b`), munkakönyvtár tiszta.
 - A SZABALYOK 7. szakasza kiegészült: a megrendelő több gépen dolgozik (MacBook Pro, Mac mini), a parancsok elé mindig `cd <repó>/worker` kell; a `wrangler secret put` a mappán kívül csak `--name wallos`-szal megy; a `wrangler.jsonc` változásai (domain, változók) csak `npm run deploy` után élnek; a tesztek nem függhetnek a `wrangler.jsonc` `vars` értékeitől.
+
+## Az aisub.hu telepítése (a megrendelő Macjéről)
+
+**Kérés:** „A grafium/Wallos alapján folytasd a megkezdett WALLOS 1.0 | Előfizetések projektet” → „Igen, telepítsd most innen az aisub.hu-t, utána futtasd az ellenőrzést, és frissítsd a naplót.”
+
+- Új munkakörnyezet: a session most a megrendelő MacBookján fut (Claude desktop app), nem a sandboxban. A klón: `~/Wallos` (a `37223ce`-ről `23fe6dc`-re fast-forward), a `wrangler` be van jelentkezve (Grafium fiók), a Cloudflare elérhető — a telepítés és az éles ellenőrzés innen közvetlenül futtatható.
+- Kiinduló állapot ellenőrizve: `npm run typecheck` hibátlan, 240 teszt zöld; `check:deployment` a `workers.dev` címen 8/8; az `aisub.hu` zóna a Cloudflare-en van (`bingo`/`camilo.ns.cloudflare.com`), a csúcsdomainen nem volt ütköző rekord; `wrangler deploy --dry-run` a helyes kötésekkel.
+- `npm run deploy` → **`6fa0448e-cbe1-4b14-a8fb-9910e42d73a7`** verzió, célpontok: `https://wallos.grafium.workers.dev`, `aisub.hu (custom domain)`, `schedule: 0 * * * *`. A Cloudflare létrehozta a DNS-rekordot és a tanúsítványt.
+- **`check:deployment -- https://aisub.hu`: 8/8 zöld, verzió 0.8.0**, érvényes TLS-tanúsítvány. `npx wrangler d1 migrations list DB --remote` → „No migrations to apply”.
+- **Hiba menet közben:** közvetlenül a telepítés után a helyi és több nyilvános resolver (1.1.1.1) még a korábbi „nincs ilyen név” választ cache-elte (a zóna SOA negatív TTL-je 1800 s), ezért a `curl` és a Node `fetch` „Could not resolve host” hibát adott, miközben az authoritatív NS és a 8.8.8.8 már válaszolt. Az ellenőrzés ezért egyszer egy DNS-rögzítő `--import` előtöltővel futott a Cloudflare IP-jére (a TLS és a `Host` valódi volt); ez legfeljebb 30 percig tart, utána a sima parancs is megy. Tanulság a SZABALYOK 7. szakaszába került.
+- Nyitott: az admin oldalon a *Server URL* `https://aisub.hu`-ra (ha ki van töltve); opcionálisan `"workers_dev": false` egy átmeneti idő után; a tesztlevél fejlécében SPF/DKIM/DMARC `pass`; admin 2FA; mentés-próba; az `ELESITES.md` 11. ellenőrzőlistája.
