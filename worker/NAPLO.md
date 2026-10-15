@@ -30,7 +30,7 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | Mentés a Resend és a saját domain után | `23fe6dc` | 240 | ✅ |
 | Napló: az `aisub.hu` élesben | `6bea7cf` | 240 | ✅ |
 | Napló: CI-eredmény | `07e5924` | 240 | ✅ |
-| Mentés az `aisub.hu` után, új session-mappa | – | 240 | – |
+| Mentés az `aisub.hu` után, új session-mappa | `63fc5d3` | 240 | ✅ |
 
 A fejlesztés és az élesítés 2026-10-13-án, a Resend és a saját domain beállítása, valamint az `aisub.hu` telepítése 2026-10-15-én készült.
 
