@@ -1,6 +1,6 @@
 # Átadás-átvétel — hol tart a projekt, hogyan lehet folytatni
 
-Állapot: **2026-10-13, 0.8.0 verzió, élesítve:** `https://wallos.grafium.workers.dev` (D1: `77fe2741-2dfa-43b1-9a6a-db5371ed1c87`; `check:deployment` 8/8 zöld; mind a 7 migráció lefutott). Utolsó mentés: az élesítés után, tiszta munkakönyvtárral. Resend élesben működik (`wallos@aisub.hu`, a tesztlevél megérkezett, de még levélszemétbe sorolódik — DMARC/kézbesíthetőség folyamatban). Admin fiók regisztrálva. Hátravan még: admin 2FA, mentés-próba, opcionálisan saját domain és adatátköltöztetés ([ELESITES.md](./ELESITES.md)). Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
+Állapot: **2026-10-13, 0.8.0 verzió, élesítve:** `https://wallos.grafium.workers.dev`, saját domain beállítva: `https://aisub.hu` (telepítésre vár) (D1: `77fe2741-2dfa-43b1-9a6a-db5371ed1c87`; `check:deployment` 8/8 zöld; mind a 7 migráció lefutott). Utolsó mentés: az élesítés után, tiszta munkakönyvtárral. Resend élesben működik (`wallos@aisub.hu`, a tesztlevél megérkezett, de még levélszemétbe sorolódik — DMARC/kézbesíthetőség folyamatban). Admin fiók regisztrálva. Hátravan még: admin 2FA, mentés-próba, opcionálisan saját domain és adatátköltöztetés ([ELESITES.md](./ELESITES.md)). Ág: `claude/zen-goldberg-0hbajd` a `grafium/Wallos` repóban; PR nincs. Előzmények: [NAPLO.md](./NAPLO.md); szabályok: [SZABALYOK.md](./SZABALYOK.md); ütemterv: [ROADMAP.md](./ROADMAP.md).
 
 ## 1. Mi működik
 

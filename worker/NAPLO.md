@@ -165,3 +165,12 @@ Minden munka 2026-10-13-án készült.
 - `wrangler.jsonc`: `EMAIL_FROM` = `Wallos <wallos@aisub.hu>`, `APP_URL` = `https://wallos.grafium.workers.dev`. A tesztek ettől függetlenek maradtak: a `vitest.config.ts` az `APP_URL`-t üresre rögzíti (a linkek a kérés címéből készülnek), az `EMAIL_FROM` ott eddig is rögzített volt. 240 teszt zöld.
 - Nyitott a megrendelőnél: `git pull` + `npm run deploy` a `worker/` mappából, majd próba (admin oldal SMTP-szakasza, tesztlevél, Resend → Emails).
 - `npm run deploy` lefutott (verzió `880039e2-eb46-419a-a3b9-dcb99fcf3156`). Az admin fiók regisztrálva (regisztrációkor nem megy levél: az első fiók az admin, ahogy a PHP-ban). **A tesztlevél megérkezett, a Resend élesben működik** — de a levélszemétbe került. A `_dmarc` rekordot a megrendelő felvette; következő: a fejlécben az SPF/DKIM/DMARC eredmény ellenőrzése, mail-tester.com, „nem levélszemét” jelölés (új domain hírneve idővel épül).
+
+## Saját domain: aisub.hu
+
+**Kérés:** „Workert állítsd erre a domainre: aisub.hu”
+
+- `wrangler.jsonc`: `"routes": [{ "pattern": "aisub.hu", "custom_domain": true }]`, `APP_URL` = `https://aisub.hu`. A `workers.dev` cím egyelőre bekapcsolva marad (átmenetre és ellenőrzésre); később `"workers_dev": false`.
+- Ellenőrzés: `wrangler deploy --dry-run` a helyes kötésekkel és változókkal, 240 teszt zöld.
+- Feltétel: az `aisub.hu` zóna ugyanabban a Cloudflare-fiókban van, és a csúcsdomainen (`aisub.hu`) nincs más A/AAAA/CNAME rekord — ha van, a telepítés hibát ad, előbb törölni kell. A Resend rekordjai (`send`, `resend._domainkey`, `_dmarc`) nem ütköznek.
+- Nyitott a megrendelőnél: `npm run deploy`, majd `npm run check:deployment -- https://aisub.hu`; ha az admin oldalon ki van töltve a „Server URL”, azt is `https://aisub.hu`-ra kell írni.
