@@ -33,7 +33,7 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | Mentés az `aisub.hu` után, új session-mappa | `63fc5d3` | 240 | ✅ |
 | Napló: CI-eredmény | `b0bfd51` | 240 | ✅ |
 | Javítás: HTTP → HTTPS átirányítás (0.8.1) | `c7f5600` | 242 | ✅ |
-| Napló: 0.8.1 élesben | – | 242 | – |
+| Napló: 0.8.1 élesben | `b4884ce` | 242 | ✅ |
 
 A fejlesztés és az élesítés 2026-10-13-án, a Resend és a saját domain beállítása, valamint az `aisub.hu` telepítése és a 0.8.1-es javítás 2026-10-15-én készült.
 
