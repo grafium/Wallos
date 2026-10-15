@@ -28,7 +28,7 @@ Időrendben: mit kért a megrendelő, mi készült el, milyen döntések szület
 | Napló: DMARC-rekord | `a872ceb` | 240 | ✅ |
 | Saját domain: `aisub.hu` | `a0c001b` | 240 | ✅ |
 | Mentés a Resend és a saját domain után | `23fe6dc` | 240 | ✅ |
-| Napló: az `aisub.hu` élesben | – | 240 | – |
+| Napló: az `aisub.hu` élesben | `6bea7cf` | 240 | ✅ |
 
 A fejlesztés és az élesítés 2026-10-13-án, a Resend és a saját domain beállítása, valamint az `aisub.hu` telepítése 2026-10-15-én készült.
 
